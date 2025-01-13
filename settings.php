@@ -24,6 +24,9 @@
 
 defined('MOODLE_INTERNAL') || die;
 
+$settings = new admin_settingpage("local_backupftp", get_string("pluginname", "local_backupftp"));
+$ADMIN->add("localplugins", $settings);
+
 if ($hassiteconfig) {
     if (!$ADMIN->locate("integracaoroot")) {
         $ADMIN->add("root", new admin_category("integracaoroot", get_string("settings_integrations", "local_backupftp")));
@@ -39,9 +42,6 @@ if ($hassiteconfig) {
 }
 
 if (is_siteadmin()) {
-    $settings = new admin_settingpage("local_backupftp", get_string("pluginname", "local_backupftp"));
-    $ADMIN->add("localplugins", $settings);
-
     $name = "local_backupftp/ftpenable";
     $title = get_string("settings_ftpenable", "local_backupftp");
     $setting = new admin_setting_configcheckbox($name, $title, "", 1);
