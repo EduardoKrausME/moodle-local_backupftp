@@ -45,7 +45,8 @@ $string['course_added_to_backup_queue'] = 'Course {$a->course_id} added to the b
 $string['course_already_exists'] = 'Course already exists';
 $string['courses'] = 'Courses';
 $string['courses_and_categories'] = 'Courses and Categories';
-$string['created_on'] = 'created on {$a->modify}';
+$string['created_on'] = 'Created on';
+$string['created_on_time'] = 'Created on {$a->modify}';
 $string['cron'] = 'the CRON';
 $string['cron_task'] = 'CRON task';
 $string['error_creating_folder'] = '<span style="color:#d10707">Error creating folder</span> "<b>{$a->ftppasta}</b>" on FTP with error "<b>{$->errormsg}</b>"!';
