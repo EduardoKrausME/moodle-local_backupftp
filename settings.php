@@ -34,7 +34,7 @@ if ($hassiteconfig) {
 
     $ADMIN->add("integracaoroot",
         new admin_externalpage(
-            "local_backupftp",
+            "local_backupftp2",
             get_string("modulename", "local_backupftp"),
             "{$CFG->wwwroot}/local/backupftp/index.php"
         )
