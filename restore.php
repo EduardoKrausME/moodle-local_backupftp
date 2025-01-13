@@ -74,13 +74,13 @@ $ftppasta = get_config("local_backupftp", "ftppasta");
 
 echo '<form method="post">';
 echo "<h2>" . get_string('ftp_files', 'local_backupftp') . "</h2>";
-echo listar_arquivos($ftppasta);
+echo list_files($ftppasta);
 echo '<input type="submit" value="' . get_string('send', 'local_backupftp') . '"></form>';
 
 echo $OUTPUT->footer();
 
 /**
- * Function listar_arquivos
+ * Function list_files
  *
  * @param $pasta
  *
@@ -88,11 +88,15 @@ echo $OUTPUT->footer();
  * @throws coding_exception
  * @throws dml_exception
  */
-function listar_arquivos($pasta) {
+function list_files($pasta) {
     global $DB, $CFG, $ftppasta;
 
     $ftp = new ftp();
     $ftp->connect();
+
+    if (!$ftp->conn_id) {
+        return [];
+    }
 
     $files = [];
     $ftprawlists = ftp_rawlist($ftp->conn_id, $pasta . "/");
@@ -123,7 +127,7 @@ function listar_arquivos($pasta) {
         foreach ($files as $file) {
 
             if ($file["type"] == "dir") {
-                $return .= listar_arquivos("{$pasta}/{$file["name"]}");
+                $return .= list_files("{$pasta}/{$file["name"]}");
             } else if ($file["type"] == "file") {
                 $countall++;
 
