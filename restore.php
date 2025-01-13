@@ -157,7 +157,7 @@ function listar_arquivos($pasta) {
                         <p>
                             {$showinput}
                             <strong>{$file['name']}</strong>, " . get_string('file_size', 'local_backupftp',
-                            ['size' => ftp::format_bytes($file['size'])]) . ", " . get_string('created_on', 'local_backupftp',
+                            ['size' => ftp::format_bytes($file['size'])]) . ", " . get_string('created_on_time', 'local_backupftp',
                             ['modify' => $file['modify']]) . "
                             {$restoretext}
                         </p>";
