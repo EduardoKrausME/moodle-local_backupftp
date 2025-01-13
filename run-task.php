@@ -23,6 +23,7 @@
  */
 
 require('../../config.php');
+
 $CFG->debug = 32767;
 $CFG->debugdisplay = 1;
 ini_set("display_errors", "1");
@@ -30,9 +31,14 @@ ini_set("log_errors", "1");
 ob_end_flush();
 session_write_close();
 
-require_once("{$CFG->dirroot}/local/backupftp/classes/task/restore_course.php");
 $PAGE->set_context(context_system::instance());
 $PAGE->set_url(new moodle_url("/local/backupftp/run-task.php"));
+$PAGE->set_pagelayout("base");
+$PAGE->set_title(get_string('restore_report', 'local_backupftp'));
+$PAGE->set_heading(get_string('restore_report', 'local_backupftp'));
+
+require_login();
+require_capability("local/backupftp:manage", context_system::instance());
 
 $action = optional_param("action", false, PARAM_TEXT);
 $nun = optional_param("nun", false, PARAM_TEXT);
