@@ -39,6 +39,7 @@ $string['categories'] = 'Categories';
 $string['category_created_successfully'] = ' ==> Category {$a->categoria_nome} created successfully';
 $string['category_link'] = 'Category <a href="{$a}" target="blank">Root Category</a>';
 $string['click_here'] = 'Click here';
+$string['created_at'] = 'Created at';
 $string['course'] = 'Course';
 $string['course_added_to_backup_queue'] = 'Course {$a->course_id} added to the backup queue';
 $string['course_already_exists'] = 'Course already exists';
