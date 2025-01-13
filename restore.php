@@ -95,7 +95,7 @@ function list_files($pasta) {
     $ftp->connect();
 
     if (!$ftp->conn_id) {
-        return [];
+        return "";
     }
 
     $files = [];
