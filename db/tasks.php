@@ -26,7 +26,7 @@ defined('MOODLE_INTERNAL') || die;
 
 $tasks = [
     [
-        "classname" => "\local_backupftp\task\backup_course",
+        "classname" => "\\local_backupftp\\task\\backup_course",
         "blocking" => 1,
         "minute" => "*",
         "hour" => "*",
@@ -34,7 +34,7 @@ $tasks = [
         "dayofweek" => "*",
         "month" => "*",
     ], [
-        "classname" => "\local_backupftp\task\restore_course",
+        "classname" => "\\local_backupftp\\task\\restore_course",
         "blocking" => 1,
         "minute" => "*",
         "hour" => "*",
