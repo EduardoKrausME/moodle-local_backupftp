@@ -65,13 +65,13 @@ class ftp {
         }
 
         if (!$this->conn_id) {
-            $logs[] = "Erro ao conecatr ao FTP";
+            $logs[] = get_string("ftp_error_connecting", "local_backupftp");
             $this->conn_id = null;
             return $logs;
         }
 
         if (!ftp_login($this->conn_id, $ftpusername, $ftppassword)) {
-            $logs[] = "Não foi possível conectar com {$ftpusername}@{$ftpurl}";
+            $logs[] = get_string("ftp_error_login", "local_backupftp", ['username' => $ftpusername, 'url' => $ftpurl]);
             $this->conn_id = null;
             return $logs;
         }
