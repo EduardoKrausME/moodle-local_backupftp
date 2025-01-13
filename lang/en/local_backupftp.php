@@ -34,6 +34,7 @@ $string['backup_end_time'] = 'Backup End Time';
 $string['backup_report'] = 'Backup Report';
 $string['backup_start'] = 'Backup started on';
 $string['backup_start_time'] = 'Backup Start Time';
+$string['backupftp:manage'] = 'Manage backup';
 $string['categories'] = 'Categories';
 $string['category_created_successfully'] = ' ==> Category {$a->categoria_nome} created successfully';
 $string['category_link'] = 'Category <a href="{$a}" target="blank">Root Category</a>';
