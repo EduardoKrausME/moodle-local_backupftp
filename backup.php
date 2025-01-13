@@ -64,6 +64,8 @@ if (isset($_POST["category"])) {
 
 echo "<p>" . get_string('view_backup_report', 'local_backupftp') . " <a href='report-backup.php'>" .
     get_string('report', 'local_backupftp') . "</a></p>";
+echo "<p>" . get_string('run_cron', 'local_backupftp') . " <a href='run-task.php'>" .
+    get_string('cron', 'local_backupftp') . "</a></p>";
 echo '<form method="post">';
 echo "<h2>" . get_string('categories', 'local_backupftp') . "</h2>";
 

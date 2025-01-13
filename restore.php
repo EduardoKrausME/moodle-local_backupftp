@@ -65,6 +65,8 @@ if (isset($_POST["file"])) {
 }
 echo "<p>" . get_string('view_backup_report', 'local_backupftp') .
     " <a href='report-restore.php'>" . get_string('report', 'local_backupftp') . "</a></p>";
+echo "<p>" . get_string('run_cron', 'local_backupftp') .
+    " <a href='run-task.php'>" . get_string('cron_task', 'local_backupftp') . "</a></p>";
 
 require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
 

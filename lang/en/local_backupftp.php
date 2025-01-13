@@ -70,6 +70,12 @@ $string['restore_course_already_exists'] = '<a style="color:#a41d1d" target="_bl
 $string['restore_courses_and_categories'] = 'Restore: Courses and Categories';
 $string['restore_report'] = 'Restore Report';
 $string['run_cron'] = 'Run the';
+$string['runtask_execute_one_course'] = 'Execute only 1 course at a time';
+$string['runtask_execute_five_courses'] = 'Execute only 5 courses at a time';
+$string['runtask_execute_ten_courses'] = 'Execute only 10 courses at a time';
+$string['runtask_backup'] = 'To execute the backup';
+$string['runtask_restore'] = 'To execute the restore';
+$string['runtask_click_here'] = 'Click here';
 $string['select_deselect_all'] = 'Select/Deselect All';
 $string['send'] = 'Send';
 $string['settings_categorystart'] = 'Root Category ID';
