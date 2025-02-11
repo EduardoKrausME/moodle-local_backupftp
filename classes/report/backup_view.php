@@ -51,7 +51,7 @@ class backup_view extends \table_sql {
         $download = optional_param("download", null, PARAM_ALPHA);
         if ($download) {
             raise_memory_limit(MEMORY_EXTRA);
-            $filename = "Rlatório de backup";
+            $filename = get_string("backup_report", "local_backupftp");
             $this->is_downloading($download, $filename);
         }
 
