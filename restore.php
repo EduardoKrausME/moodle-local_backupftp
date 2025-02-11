@@ -164,7 +164,7 @@ function local_backupftp_list_files($pasta) {
                     $return .= "
                         <p>
                             {$showinput}
-                            <strong>{$file['name']}</strong>, 
+                            <strong>{$file['name']}</strong>,
                             {$filesize}, {$createdontime}
                             {$restoretext}
                         </p>";
