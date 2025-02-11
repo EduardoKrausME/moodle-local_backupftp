@@ -22,8 +22,6 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-ob_end_flush();
-
 require('../../config.php');
 
 $CFG->debug = 32767;

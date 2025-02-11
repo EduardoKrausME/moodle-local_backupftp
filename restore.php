@@ -63,13 +63,13 @@ if ($files) {
     }
 }
 
-echo $OUTPUT->render_from_template("local_backupftp/local_backupftp_list_files-info");
+echo $OUTPUT->render_from_template("local_backupftp/restore/info");
 
 require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
 
 $ftppasta = get_config("local_backupftp", "ftppasta");
 
-echo $OUTPUT->render_from_template("local_backupftp/local_backupftp_list_files-form",
+echo $OUTPUT->render_from_template("local_backupftp/restore/form",
     ["list_files" => local_backupftp_list_files($ftppasta)]);
 
 echo $OUTPUT->footer();
@@ -148,10 +148,11 @@ function local_backupftp_list_files($pasta) {
                         $countexist++;
                     }
 
-                    $filesize = get_string('file_size', 'local_backupftp', ['size' => \local_backupftp\server\ftp::format_bytes($file['size'])]);
+                    $filesize = get_string('file_size', 'local_backupftp',
+                        ['size' => \local_backupftp\server\ftp::format_bytes($file['size'])]);
                     $createdontime = get_string('created_on_time', 'local_backupftp', ['modify' => $file['modify']]);
 
-                    $internalreturn .= $OUTPUT->render_from_template("local_backupftp/local_backupftp_list_files-p", [
+                    $internalreturn .= $OUTPUT->render_from_template("local_backupftp/restore/p", [
                         "showinput" => $showinput,
                         "filename" => $file['name'],
                         "filesize" => $filesize,
@@ -162,7 +163,7 @@ function local_backupftp_list_files($pasta) {
             }
         }
 
-        $return .= $OUTPUT->render_from_template("local_backupftp/local_backupftp_list_files-fieldset", [
+        $return .= $OUTPUT->render_from_template("local_backupftp/restore/fieldset", [
             "infocategori_link" => $infocategori["link"],
             "unique" => $unique,
             "countall" => $countall,

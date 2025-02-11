@@ -15,14 +15,14 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template local_backupftp/report
+    @template local_backupftp/restore/form
 
     Example context (json):
     {}
 }}
 
-<h3>{{#str}}backup_report, local_backupftp{{/str}}</h3>
-<p><a href="report-backup.php">{{#str}}click_here, local_backupftp{{/str}}</a></p>
-
-<h3>{{#str}}restore_report, local_backupftp{{/str}}</h3>
-<p><a href="report-restore.php">{{#str}}click_here, local_backupftp{{/str}}</a></p>
+<form method="post">
+    <h2>{{#str}}ftp_files, local_backupftp{{/str}}</h2>
+    {{{list_files}}}
+    <input type="submit" value="{{#str}}send, local_backupftp{{/str}}">
+</form>
