@@ -22,8 +22,6 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use local_backupftp\server\ftp;
-
 require('../../config.php');
 require(__DIR__ . '/classes/server/ftp.php');
 global $DB, $PAGE, $OUTPUT;
@@ -64,19 +62,15 @@ if ($files) {
         }
     }
 }
-echo "<p>" . get_string('view_backup_report', 'local_backupftp') .
-    " <a href='report-restore.php'>" . get_string('report', 'local_backupftp') . "</a></p>";
-echo "<p>" . get_string('run_cron', 'local_backupftp') .
-    " <a href='run-task.php'>" . get_string('cron_task', 'local_backupftp') . "</a></p>";
+
+echo $OUTPUT->render_from_template("local_backupftp/local_backupftp_list_files-info");
 
 require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
 
 $ftppasta = get_config("local_backupftp", "ftppasta");
 
-echo '<form method="post">';
-echo "<h2>" . get_string('ftp_files', 'local_backupftp') . "</h2>";
-echo local_backupftp_list_files($ftppasta);
-echo '<input type="submit" value="' . get_string('send', 'local_backupftp') . '"></form>';
+echo $OUTPUT->render_from_template("local_backupftp/local_backupftp_list_files-form",
+    ["list_files" => local_backupftp_list_files($ftppasta)]);
 
 echo $OUTPUT->footer();
 
@@ -90,9 +84,9 @@ echo $OUTPUT->footer();
  * @throws dml_exception
  */
 function local_backupftp_list_files($pasta) {
-    global $DB, $CFG, $ftppasta;
+    global $DB, $CFG, $OUTPUT, $ftppasta;
 
-    $ftp = new ftp();
+    $ftp = new \local_backupftp\server\ftp();
     $ftp->connect();
 
     if (!$ftp->conn_id) {
@@ -118,17 +112,12 @@ function local_backupftp_list_files($pasta) {
 
         $infocategori = local_backupftp_get_categoria($categoria);
 
-        $return .= "<fieldset id='id-{$unique}' style='border:1px solid #959595;padding:6px;padding-left:50px;margin:3px;'>";
-        $return .= "<legend style='float: initial;width: auto;padding: 0 11px;margin-bottom: 4px;'>" .
-            $infocategori["link"] . "</legend>";
-        $return .= "<span style='float:right;color:#E91E63;margin-top: -21px;' onclick=\"$('#id-{$unique} input').click();\">" .
-            get_string("select_deselect_all", "local_backupftp") . "</span>";
-
         $countall = $countexist = 0;
+        $internalreturn = "";
         foreach ($files as $file) {
 
             if ($file["type"] == "dir") {
-                $return .= local_backupftp_list_files("{$pasta}/{$file["name"]}");
+                $internalreturn .= local_backupftp_list_files("{$pasta}/{$file["name"]}");
             } else if ($file["type"] == "file") {
                 $countall++;
 
@@ -159,22 +148,27 @@ function local_backupftp_list_files($pasta) {
                         $countexist++;
                     }
 
-                    $filesize = get_string('file_size', 'local_backupftp', ['size' => ftp::format_bytes($file['size'])]);
+                    $filesize = get_string('file_size', 'local_backupftp', ['size' => \local_backupftp\server\ftp::format_bytes($file['size'])]);
                     $createdontime = get_string('created_on_time', 'local_backupftp', ['modify' => $file['modify']]);
-                    $return .= "
-                        <p>
-                            {$showinput}
-                            <strong>{$file['name']}</strong>,
-                            {$filesize}, {$createdontime}
-                            {$restoretext}
-                        </p>";
+
+                    $internalreturn .= $OUTPUT->render_from_template("local_backupftp/local_backupftp_list_files-p", [
+                        "showinput" => $showinput,
+                        "filename" => $file['name'],
+                        "filesize" => $filesize,
+                        "createdontime" => $createdontime,
+                        "restoretext" => $restoretext,
+                    ]);
                 }
             }
         }
 
-        $return .= "<h4 style='float:right;color:#1E58E9;padding-top: -21px;'>" . get_string('total_files', 'local_backupftp') .
-            " {$countall}<br>" . get_string("course_already_exists", "local_backupftp") . ": {$countexist}</h4>";
-        $return .= "</fieldset>";
+        $return .= $OUTPUT->render_from_template("local_backupftp/local_backupftp_list_files-fieldset", [
+            "infocategori_link" => $infocategori["link"],
+            "unique" => $unique,
+            "countall" => $countall,
+            "countexist" => $countexist,
+            "data" => $internalreturn,
+        ]);
     }
     return $return;
 }

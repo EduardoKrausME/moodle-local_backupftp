@@ -49,21 +49,5 @@ if ($action == "backup") {
 } else if ($action == "restore") {
     (new \local_backupftp\task\restore_course())->execute($nun);
 } else {
-    echo "<h3>" . get_string('runtask_execute_one_course', 'local_backupftp') . "</h3>";
-    echo "<p>" . get_string('runtask_backup', 'local_backupftp') .
-        " <a href='?action=backup&nun=1'>" . get_string('runtask_click_here', 'local_backupftp') . "</a></p>";
-    echo "<p>" . get_string('runtask_restore', 'local_backupftp') .
-        " <a href='?action=restore&nun=1'>" . get_string('runtask_click_here', 'local_backupftp') . "</a></p>";
-
-    echo "<h3>" . get_string('runtask_execute_five_courses', 'local_backupftp') . "</h3>";
-    echo "<p>" . get_string('runtask_backup', 'local_backupftp') .
-        " <a href='?action=backup&nun=5'>" . get_string('runtask_click_here', 'local_backupftp') . "</a></p>";
-    echo "<p>" . get_string('runtask_restore', 'local_backupftp') .
-        " <a href='?action=restore&nun=5'>" . get_string('runtask_click_here', 'local_backupftp') . "</a></p>";
-
-    echo "<h3>" . get_string('runtask_execute_ten_courses', 'local_backupftp') . "</h3>";
-    echo "<p>" . get_string('runtask_backup', 'local_backupftp') .
-        " <a href='?action=backup&nun=10'>" . get_string('runtask_click_here', 'local_backupftp') . "</a></p>";
-    echo "<p>" . get_string('runtask_restore', 'local_backupftp') .
-        " <a href='?action=restore&nun=10'>" . get_string('runtask_click_here', 'local_backupftp') . "</a></p>";
+    echo $OUTPUT->render_from_template("local_backupftp/run-task");
 }

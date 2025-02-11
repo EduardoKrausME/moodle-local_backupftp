@@ -36,10 +36,6 @@ require_capability("local/backupftp:manage", context_system::instance());
 
 echo $OUTPUT->header();
 
-echo "<h3>" . get_string('backup_report', 'local_backupftp') . "</h3>";
-echo "<p><a href='report-backup.php'>" . get_string('click_here', 'local_backupftp') . "</a></p>";
-
-echo "<h3>" . get_string('restore_report', 'local_backupftp') . "</h3>";
-echo "<p><a href='report-restore.php'>" . get_string('click_here', 'local_backupftp') . "</a></p>";
+echo $OUTPUT->render_from_template("local_backupftp/report");
 
 echo $OUTPUT->footer();
