@@ -86,7 +86,8 @@ echo $OUTPUT->footer();
  */
 function local_backupftp_categorias($cat) {
     global $DB;
-    $categories = $DB->get_records_sql("SELECT id, name, parent FROM {course_categories} WHERE parent = {$cat}");
+    $categories = $DB->get_records_sql("SELECT id, name, parent FROM {course_categories} WHERE parent = :parent",
+        ["parent" => $cat]);
 
     $return = "";
     if ($categories) {
@@ -97,13 +98,14 @@ function local_backupftp_categorias($cat) {
 
         $countcat = 0;
         foreach ($categories as $categorie) {
-            $count = $DB->get_field("course", 'COUNT(*)', ["category" => $categorie->id]);
+            $params = ["category" => $categorie->id];
+            $count = $DB->get_field("course", 'COUNT(*)', $params);
 
             $statuss = $DB->get_records_sql("
                     SELECT COUNT(*) AS linhas, status
                       FROM {local_backupftp_course}
-                     WHERE courseid IN (SELECT c.id FROM {course} c WHERE c.category = {$categorie->id})
-                  GROUP BY status ORDER BY status");
+                     WHERE courseid IN (SELECT c.id FROM {course} c WHERE c.category = :category)
+                  GROUP BY status ORDER BY status", $params);
             $statusfolder = "";
             foreach ($statuss as $status) {
                 $statusfolder .= " / <strong>{$status->status}:</strong> {$status->linhas}";

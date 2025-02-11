@@ -138,8 +138,8 @@ function local_backupftp_list_files($pasta) {
                     if ($restore = $DB->get_record_sql("
                                 SELECT *
                                   FROM {local_backupftp_restore}
-                                 WHERE remotefile = '{$pasta}/{$file["name"]}'
-                                 LIMIT 1")) {
+                                 WHERE remotefile = :remotefile
+                                 LIMIT 1", ["remotefile" => "{$pasta}/{$file["name"]}"])) {
                         $restoretext .= "<br> / <span style='color:#3F51B5'>" .
                             get_string('already_added_status', 'local_backupftp', ['status' => $restore->status]) . "</span>";
                     }
@@ -148,8 +148,9 @@ function local_backupftp_list_files($pasta) {
                     if ($infocategori["id"] > 1 && $course = $DB->get_record_sql("
                                 SELECT id
                                   FROM {course}
-                                 WHERE fullname = '{$filename}'
-                                   AND category = '{$infocategori["id"]}'")) {
+                                 WHERE fullname = :fullname
+                                   AND category = :category",
+                            ["fullname" => $filename, "category" => $infocategori["id"]])) {
                         $showinput = "";
                         $restoretext .=
                             " / <a style='color:#a41d1d' target='_blank' href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>" .
@@ -157,12 +158,13 @@ function local_backupftp_list_files($pasta) {
                         $countexist++;
                     }
 
+                    $filesize = get_string('file_size', 'local_backupftp', ['size' => ftp::format_bytes($file['size'])]);
+                    $createdontime = get_string('created_on_time', 'local_backupftp', ['modify' => $file['modify']]);
                     $return .= "
                         <p>
                             {$showinput}
-                            <strong>{$file['name']}</strong>, " . get_string('file_size', 'local_backupftp',
-                            ['size' => ftp::format_bytes($file['size'])]) . ", " . get_string('created_on_time', 'local_backupftp',
-                            ['modify' => $file['modify']]) . "
+                            <strong>{$file['name']}</strong>, 
+                            {$filesize}, {$createdontime}
                             {$restoretext}
                         </p>";
                 }

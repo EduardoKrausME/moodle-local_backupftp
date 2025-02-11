@@ -196,7 +196,8 @@ class backup_course extends \core\task\scheduled_task {
                 }
                 $cat = $course->category;
                 while ($cat) {
-                    $categorie = $DB->get_record_sql("SELECT id, name, parent FROM {course_categories} WHERE id = {$cat}");
+                    $categorie = $DB->get_record_sql("SELECT id, name, parent FROM {course_categories} WHERE id = :id",
+                        ["id" => $cat]);
                     $pastas[] = $categorie->name;
                     $cat = $categorie->parent;
                 }

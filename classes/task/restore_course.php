@@ -163,7 +163,8 @@ class restore_course extends \core\task\scheduled_task {
         $categoria = $this->categoryid($remotefile, $logs);
         $logs[] = get_string('adding_to_category', 'local_backupftp', ['categoria' => $categoria]);
 
-        $course = $DB->get_record_sql("SELECT id FROM {course} WHERE fullname = '{$filename}' AND category = '{$categoria}'");
+        $course = $DB->get_record_sql("SELECT id FROM {course} WHERE fullname = :fullname AND category = :category",
+            ["fullname"=>$filename, "category"=>$categoria]);
         if ($course) {
             $logs[] = get_string('restore_course_already_exists', 'local_backupftp',
                 ['course_url' => "{$CFG->wwwroot}/course/view.php?id={$course->id}"]);
