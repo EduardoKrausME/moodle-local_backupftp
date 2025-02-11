@@ -121,7 +121,7 @@ class restore_course extends \core\task\scheduled_task {
             return $logs;
         }
 
-        $localfile = "{$CFG->tempdir}/backup-" . uniqid() . ".mbz";
+        $localfile = make_temp_directory("local_backupftp") . "/backup-" . uniqid() . ".mbz";
         $fileresource = fopen($localfile, "w");
 
         $ftp = new ftp();
@@ -147,7 +147,7 @@ class restore_course extends \core\task\scheduled_task {
 
         $packer = get_file_packer("application/vnd.moodle.backup");
         $backupid = \restore_controller::get_tempdir_name(SITEID, get_admin()->id);
-        $path = "{$CFG->tempdir}/backup/{$backupid}/";
+        $path = make_temp_directory("local_backupftp") . "/backup/{$backupid}/";
         if ($packer->extract_to_pathname($localfile, $path)) {
             $logs[] = get_string('mbz_extracted_successfully', 'local_backupftp');
         } else {
@@ -164,7 +164,7 @@ class restore_course extends \core\task\scheduled_task {
         $logs[] = get_string('adding_to_category', 'local_backupftp', ['categoria' => $categoria]);
 
         $course = $DB->get_record_sql("SELECT id FROM {course} WHERE fullname = :fullname AND category = :category",
-            ["fullname"=>$filename, "category"=>$categoria]);
+            ["fullname" => $filename, "category" => $categoria]);
         if ($course) {
             $logs[] = get_string('restore_course_already_exists', 'local_backupftp',
                 ['course_url' => "{$CFG->wwwroot}/course/view.php?id={$course->id}"]);
