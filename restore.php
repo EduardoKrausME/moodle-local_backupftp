@@ -90,7 +90,7 @@ function local_backupftp_list_files($pasta) {
     $ftp->connect();
 
     if (!$ftp->conn_id) {
-        return "";
+        return get_string("ftp_error_connecting", "local_backupftp");
     }
 
     $files = [];
