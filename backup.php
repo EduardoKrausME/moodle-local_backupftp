@@ -36,8 +36,9 @@ require_capability("local/backupftp:manage", context_system::instance());
 
 echo $OUTPUT->header();
 
-if (isset($_POST["category"])) {
-    foreach ($_POST["category"] as $category) {
+$categorys = optional_param_array("category", false, PARAM_INT);
+if ($categorys) {
+    foreach ($categorys as $category) {
         $courses = $DB->get_records("course", ["category" => $category]);
         foreach ($courses as $course) {
 

@@ -39,9 +39,10 @@ require_capability("local/backupftp:manage", context_system::instance());
 
 echo $OUTPUT->header();
 
-if (isset($_POST["file"])) {
+$files = optional_param_array("file", false, PARAM_TEXT);
+if ($files) {
 
-    foreach ($_POST["file"] as $file) {
+    foreach ($files as $file) {
         if (!$DB->get_record_sql("
                     SELECT *
                       FROM {local_backupftp_restore}
