@@ -59,11 +59,19 @@ class backup_course extends \core\task\scheduled_task {
         require_once("{$CFG->dirroot}/backup/util/includes/backup_includes.php");
         require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
 
-        $backupftpcourses = $DB->get_records_sql("
+        if ($CFG->dbtype == "pgsql") {
+            $backupftpcourses = $DB->get_records_sql("
+                    SELECT * FROM {local_backupftp_course}
+                     WHERE status LIKE 'waiting'
+                  ORDER BY RANDOM()
+                     LIMIT {$limite}");
+        } else {
+            $backupftpcourses = $DB->get_records_sql("
                     SELECT * FROM {local_backupftp_course}
                      WHERE status LIKE 'waiting'
                   ORDER BY RAND()
                      LIMIT {$limite}");
+        }
 
         if ($backupftpcourses) {
             foreach ($backupftpcourses as $backupftpcourse) {
