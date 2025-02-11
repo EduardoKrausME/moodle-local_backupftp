@@ -22,13 +22,14 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+ob_end_flush();
+
 require('../../config.php');
 
 $CFG->debug = 32767;
 $CFG->debugdisplay = 1;
 ini_set("display_errors", "1");
 ini_set("log_errors", "1");
-ob_end_flush();
 session_write_close();
 
 $PAGE->set_context(context_system::instance());
