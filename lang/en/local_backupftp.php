@@ -66,6 +66,7 @@ $string['modulename'] = 'Backup FTP';
 $string['nothing_to_execute'] = 'Nothing to execute';
 $string['pluginname'] = 'Backup FTP';
 $string['pre_check_failure'] = 'Pre-check failed';
+$string['privacy:metadata'] = 'The local_backupftp plugin does not collect or store personal data or any other sensitive data. It only uses the provided FTP configurations to perform backups, without logging or retaining information related to users or the data being transferred.';
 $string['processing_file'] = 'Processing: <b>{$a->remote_file}</b> with {$a->size}';
 $string['remote_file'] = 'Remote File';
 $string['report'] = 'Report';
