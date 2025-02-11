@@ -74,13 +74,13 @@ $ftppasta = get_config("local_backupftp", "ftppasta");
 
 echo '<form method="post">';
 echo "<h2>" . get_string('ftp_files', 'local_backupftp') . "</h2>";
-echo list_files($ftppasta);
+echo local_backupftp_list_files($ftppasta);
 echo '<input type="submit" value="' . get_string('send', 'local_backupftp') . '"></form>';
 
 echo $OUTPUT->footer();
 
 /**
- * Function list_files
+ * Function local_backupftp_list_files
  *
  * @param $pasta
  *
@@ -88,7 +88,7 @@ echo $OUTPUT->footer();
  * @throws coding_exception
  * @throws dml_exception
  */
-function list_files($pasta) {
+function local_backupftp_list_files($pasta) {
     global $DB, $CFG, $ftppasta;
 
     $ftp = new ftp();
@@ -115,7 +115,7 @@ function list_files($pasta) {
         $unique = uniqid();
         $categoria = str_replace($ftppasta, "", $pasta);
 
-        $infocategori = get_categoria($categoria);
+        $infocategori = local_backupftp_get_categoria($categoria);
 
         $return .= "<fieldset id='id-{$unique}' style='border:1px solid #959595;padding:6px;padding-left:50px;margin:3px;'>";
         $return .= "<legend style='float: initial;width: auto;padding: 0 11px;margin-bottom: 4px;'>" .
@@ -127,7 +127,7 @@ function list_files($pasta) {
         foreach ($files as $file) {
 
             if ($file["type"] == "dir") {
-                $return .= list_files("{$pasta}/{$file["name"]}");
+                $return .= local_backupftp_list_files("{$pasta}/{$file["name"]}");
             } else if ($file["type"] == "file") {
                 $countall++;
 
@@ -177,7 +177,7 @@ function list_files($pasta) {
 }
 
 /**
- * Function get_categoria
+ * Function local_backupftp_get_categoria
  *
  * @param $pasta
  *
@@ -185,7 +185,7 @@ function list_files($pasta) {
  * @throws dml_exception
  * @throws coding_exception
  */
-function get_categoria($pasta) {
+function local_backupftp_get_categoria($pasta) {
     global $DB, $CFG;
 
     $returnlink = get_string('category_link', 'local_backupftp', "{$CFG->wwwroot}/course/management.php?categoryid=1");
