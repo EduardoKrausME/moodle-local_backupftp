@@ -69,14 +69,14 @@ echo "<p>" . get_string('run_cron', 'local_backupftp') . " <a href='run-task.php
 echo '<form method="post">';
 echo "<h2>" . get_string('categories', 'local_backupftp') . "</h2>";
 
-echo categorias(0);
+echo local_backupftp_categorias(0);
 
 echo '<input type="submit" value="' . get_string("submit", "local_backupftp") . '"></form>';
 
 echo $OUTPUT->footer();
 
 /**
- * Function categorias
+ * Function local_backupftp_categorias
  *
  * @param $cat
  *
@@ -84,7 +84,7 @@ echo $OUTPUT->footer();
  * @throws coding_exception
  * @throws dml_exception
  */
-function categorias($cat) {
+function local_backupftp_categorias($cat) {
     global $DB;
     $categories = $DB->get_records_sql("SELECT id, name, parent FROM {course_categories} WHERE parent = {$cat}");
 
@@ -115,7 +115,7 @@ function categorias($cat) {
                     <label><strong>{$categorie->name}</strong></label>
                     <strong>" . get_string("courses", "local_backupftp") . ":</strong> {$count} {$statusfolder}
                 </div>";
-            $return .= categorias($categorie->id);
+            $return .= local_backupftp_categorias($categorie->id);
 
             $countcat += $count;
         }
