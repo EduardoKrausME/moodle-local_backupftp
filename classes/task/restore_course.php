@@ -59,11 +59,19 @@ class restore_course extends \core\task\scheduled_task {
         require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
         require_once("{$CFG->dirroot}/course/classes/category.php");
 
-        $backupftprestores = $DB->get_records_sql("
+        if ($CFG->dbtype == "pgsql") {
+            $backupftprestores = $DB->get_records_sql("
+                SELECT * FROM {local_backupftp_restore}
+                 WHERE status LIKE 'waiting'
+              ORDER BY RANDOM()
+                 LIMIT {$limite}");
+        } else {
+            $backupftprestores = $DB->get_records_sql("
                 SELECT * FROM {local_backupftp_restore}
                  WHERE status LIKE 'waiting'
               ORDER BY RAND()
                  LIMIT {$limite}");
+        }
 
         if ($backupftprestores) {
             foreach ($backupftprestores as $backupftprestore) {
