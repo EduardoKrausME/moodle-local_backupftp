@@ -63,7 +63,7 @@ if ($files) {
     }
 }
 
-echo $OUTPUT->render_from_template("local_backupftp/restore/info");
+echo $OUTPUT->render_from_template("local_backupftp/restore/info", []);
 
 require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
 

@@ -36,6 +36,6 @@ require_capability("local/backupftp:manage", context_system::instance());
 
 echo $OUTPUT->header();
 
-echo $OUTPUT->render_from_template("local_backupftp/report");
+echo $OUTPUT->render_from_template("local_backupftp/report", []);
 
 echo $OUTPUT->footer();

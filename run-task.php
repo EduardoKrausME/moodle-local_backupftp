@@ -47,5 +47,5 @@ if ($action == "backup") {
 } else if ($action == "restore") {
     (new \local_backupftp\task\restore_course())->execute($nun);
 } else {
-    echo $OUTPUT->render_from_template("local_backupftp/run-task");
+    echo $OUTPUT->render_from_template("local_backupftp/run-task", []);
 }
