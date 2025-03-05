@@ -206,15 +206,15 @@ function local_backupftp_list_filesfromlocal($directory) {
     }
 
     $files = [];
-    foreach (new DirectoryIterator($directory) as $fileInfo) {
-        if ($fileInfo->isDot()) {
+    foreach (new DirectoryIterator($directory) as $fileinfo) {
+        if ($fileinfo->isDot()) {
             continue;
         }
         $files[] = [
-            "type" => $fileInfo->isDir() ? "dir" : "file",
-            "size" => $fileInfo->isFile() ? $fileInfo->getSize() : 0,
-            "modify" => date("Y-m-d H:i:s", $fileInfo->getMTime()),
-            "name" => $fileInfo->getPathname(),
+            "type" => $fileinfo->isDir() ? "dir" : "file",
+            "size" => $fileinfo->isFile() ? $fileinfo->getSize() : 0,
+            "modify" => date("Y-m-d H:i:s", $fileinfo->getMTime()),
+            "name" => $fileinfo->getPathname(),
         ];
 
     }
