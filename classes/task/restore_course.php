@@ -76,9 +76,9 @@ class restore_course extends \core\task\scheduled_task {
 
         if ($backupftprestores) {
             foreach ($backupftprestores as $backupftprestore) {
-//                $backupftprestore->timestart = time();
-//                $backupftprestore->status = "initiated";
-//                $DB->update_record("local_backupftp_restore", $backupftprestore);
+                $backupftprestore->timestart = time();
+                $backupftprestore->status = "initiated";
+                $DB->update_record("local_backupftp_restore", $backupftprestore);
 
                 try {
                     $logs = $this->execute_restore($backupftprestore->remotefile);
