@@ -136,15 +136,11 @@ class backup_course extends \core\task\scheduled_task {
             $contenthash = $file->get_contenthash();
             $l1 = $contenthash[0] . $contenthash[1];
             $l2 = $contenthash[2] . $contenthash[3];
-            $filepath = "{$CFG->dataroot}/filedir/{$l1}/{$l2}/{$contenthash}";
+            $localtempfile = "{$CFG->dataroot}/filedir/{$l1}/{$l2}/{$contenthash}";
 
-            $logs = $this->send_ftp($filepath, $file->get_filename(), $courseid, $logs);
-            $ftpenable = get_config("local_backupftp", "ftpenable");
-            $localdelete = get_config("local_backupftp", "localdelete");
-            if (!$ftpenable && $localdelete) {
-                mtrace("Local file deleted\n");
-                $file->delete();
-            }
+            $logs = $this->send_ftp($localtempfile, $file->get_filename(), $courseid, $logs);
+            mtrace("Local file deleted\n");
+            $file->delete();
         } else {
             $logs[] = "Error creating MBZ file";
         }
@@ -156,7 +152,7 @@ class backup_course extends \core\task\scheduled_task {
     /**
      * Function send_ftp
      *
-     * @param $filepath
+     * @param $localtempfile
      * @param $filename
      * @param $courseid
      * @param $logs
@@ -166,20 +162,29 @@ class backup_course extends \core\task\scheduled_task {
      * @throws \dml_exception
      * @throws \coding_exception
      */
-    private function send_ftp($filepath, $filename, $courseid, $logs) {
-        global $DB;
+    private function send_ftp($localtempfile, $filename, $courseid, $logs) {
+        global $DB, $CFG;
 
+        $localfileenable = get_config("local_backupftp", "localfileenable");
+        $localfilepath = get_config("local_backupftp", "localfilepath");
         $ftpenable = get_config("local_backupftp", "ftpenable");
         $ftpnames = get_config("local_backupftp", "ftpnames");
-        $ftppasta = get_config("local_backupftp", "ftppasta");
+        $ftppath = get_config("local_backupftp", "ftppasta");
         $ftporganize = get_config("local_backupftp", "ftporganize");
 
-        if ($ftpenable) {
+        if ($ftpenable || $localfileenable) {
 
-            $ftp = new ftp();
-            $logs = $ftp->connect($logs);
-            if (!$ftp->conn_id) {
-                return $logs;
+            if ($ftpenable) {
+                $ftp = new ftp();
+                $logs = $ftp->connect($logs);
+                if (!$ftp->conn_id) {
+                    return $logs;
+                }
+            }
+            if ($localfileenable) {
+                if (!isset($localfilepath[3])) {
+                    $localfilepath = "{$CFG->dataroot}/backup";
+                }
             }
 
             $course = null;
@@ -189,7 +194,7 @@ class backup_course extends \core\task\scheduled_task {
             }
             $filename = str_replace("/", ".", $filename);
 
-            $pastas = [];
+            $paths = [];
             if ($ftporganize) {
                 if (!$course) {
                     $course = $DB->get_record("course", ["id" => $courseid]);
@@ -198,39 +203,50 @@ class backup_course extends \core\task\scheduled_task {
                 while ($cat) {
                     $categorie = $DB->get_record_sql("SELECT id, name, parent FROM {course_categories} WHERE id = :id",
                         ["id" => $cat]);
-                    $pastas[] = $categorie->name;
+                    $paths[] = $categorie->name;
                     $cat = $categorie->parent;
                 }
-                $pastas = array_reverse($pastas);
+                $paths = array_reverse($paths);
             }
 
             $logsfolder = [];
-            foreach ($pastas as $pasta) {
-                $pasta = str_replace("/", ".", $pasta);
-                $ftppasta = "{$ftppasta}/{$pasta}";
-                if (!@ftp_mkdir($ftp->conn_id, $ftppasta)) {
-                    $logsfolder[] = get_string('error_creating_folder', 'local_backupftp',
-                        ["ftppasta" => $ftppasta, "errormsg" => error_get_last()]);
+            foreach ($paths as $path) {
+                $path = str_replace("/", ".", $path);
+                if ($ftpenable) {
+                    $ftppath = "{$ftppath}/{$path}";
+                    if (!@ftp_mkdir($ftp->conn_id, $ftppath)) {
+                        $logsfolder[] = get_string('error_creating_folder', 'local_backupftp',
+                            ["ftppath" => $ftppath, "errormsg" => error_get_last()]);
+                    }
+                }
+                if ($localfileenable) {
+                    $localpath = "{$localfilepath}/{$path}";
+                    @mkdir($localpath, 0777, true);
                 }
             }
 
-            $remotefilepath = "{$ftppasta}/{$filename}";
+            $remotefilepath = "{$ftppath}/{$filename}";
+            if ($ftpenable) {
+                @ftp_delete($ftp->conn_id, $remotefilepath);
 
-            @ftp_delete($ftp->conn_id, $remotefilepath);
+                if (ftp_fput($ftp->conn_id, $remotefilepath, fopen($localtempfile, "r"), FTP_BINARY)) {
+                    $logs[] = get_string('file_uploaded', 'local_backupftp',
+                        ['file' => $localtempfile, 'remote_file' => $remotefilepath]);
+                } else {
+                    $logs = array_merge($logs, $logsfolder);
+                    $logs[] = "<span style='color: #d10707'>" . get_string("settings_error_sending_backup", "local_backupftp") .
+                        "</span> '<b>{$remotefilepath}</b>', " .
+                        get_string("settings_file_size", "local_backupftp") . ftp::format_bytes(filesize($localtempfile)) . " " .
+                        get_string("settings_error", "local_backupftp") . "<b>" . error_get_last() . "</b>!";
 
-            if (ftp_fput($ftp->conn_id, $remotefilepath, fopen($filepath, "r"), FTP_BINARY)) {
-                $logs[] = get_string('file_uploaded', 'local_backupftp',
-                    ['file' => $filepath, 'remote_file' => $remotefilepath]);
-            } else {
-                $logs = array_merge($logs, $logsfolder);
-                $logs[] = "<span style='color: #d10707'>" . get_string("settings_error_sending_backup", "local_backupftp") .
-                    "</span> '<b>{$remotefilepath}</b>', " .
-                    get_string("settings_file_size", "local_backupftp") . ftp::format_bytes(filesize($filepath)) . " " .
-                    get_string("settings_error", "local_backupftp") . "<b>" . error_get_last() . "</b>!";
-
-                return $logs;
+                    return $logs;
+                }
+                ftp_close($ftp->conn_id);
             }
-            ftp_close($ftp->conn_id);
+            if ($localfileenable) {
+                $localfile = "{$localfilepath}/{$path}/{$filename}";
+                copy($localtempfile, $localfile);
+            }
         } else {
             $logs[] = "FTP upload disabled";
         }

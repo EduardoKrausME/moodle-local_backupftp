@@ -63,28 +63,42 @@ if ($files) {
     }
 }
 
-echo $OUTPUT->render_from_template("local_backupftp/restore/info", []);
+echo $OUTPUT->render_from_template("local_backupftp/restore_info", []);
 
 require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
 
 $ftppasta = get_config("local_backupftp", "ftppasta");
 
-echo $OUTPUT->render_from_template("local_backupftp/restore/form",
-    ["list_files" => local_backupftp_list_files($ftppasta)]);
+$localfilepath = get_config("local_backupftp", "localfilepath");
+$ftpenable = get_config("local_backupftp", "ftpenable");
+if (!isset($localfilepath[3])) {
+    $localfilepath = "{$CFG->dataroot}/backup";
+}
+
+echo $OUTPUT->render_from_template("local_backupftp/restore_form",
+    [
+        "list_files_ftp" => local_backupftp_list_filesfromftp($ftppasta),
+        "list_files_local" => local_backupftp_list_filesfromlocal($localfilepath),
+    ]);
 
 echo $OUTPUT->footer();
 
 /**
- * Function local_backupftp_list_files
+ * Function local_backupftp_list_filesfromftp
  *
- * @param $pasta
+ * @param $directory
  *
  * @return string
  * @throws coding_exception
  * @throws dml_exception
  */
-function local_backupftp_list_files($pasta) {
+function local_backupftp_list_filesfromftp($directory) {
     global $DB, $CFG, $OUTPUT, $ftppasta;
+
+    $ftpenable = get_config("local_backupftp", "ftpenable");
+    if (!$ftpenable) {
+        return "";
+    }
 
     $ftp = new \local_backupftp\server\ftp();
     $ftp->connect();
@@ -94,7 +108,7 @@ function local_backupftp_list_files($pasta) {
     }
 
     $files = [];
-    $ftprawlists = ftp_rawlist($ftp->conn_id, $pasta . "/");
+    $ftprawlists = ftp_rawlist($ftp->conn_id, $directory . "/");
     foreach ($ftprawlists as $file) {
         preg_match('/(.*?)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\w+ \d+ \d+:\d+)\s+(.*)/', $file, $info);
         $files[] = [
@@ -108,28 +122,28 @@ function local_backupftp_list_files($pasta) {
     $return = "";
     if ($files) {
         $unique = uniqid();
-        $categoria = str_replace($ftppasta, "", $pasta);
+        $categoria = str_replace($ftppasta, "", $directory);
 
-        $infocategori = local_backupftp_get_categoria($categoria);
+        $infocategori = \local_backupftp\util\category::get_category($categoria);
 
         $countall = $countexist = 0;
         $internalreturn = "";
         foreach ($files as $file) {
 
             if ($file["type"] == "dir") {
-                $internalreturn .= local_backupftp_list_files("{$pasta}/{$file["name"]}");
+                $internalreturn .= local_backupftp_list_filesfromftp("{$directory}/{$file["name"]}");
             } else if ($file["type"] == "file") {
                 $countall++;
 
                 $extension = pathinfo($file["name"], PATHINFO_EXTENSION);
                 if ($extension == "mbz") {
                     $restoretext = "";
-                    $showinput = "<input type='checkbox' name='file[]' value='{$pasta}/{$file["name"]}'>";
+                    $showinput = "<input type='checkbox' name='file[]' value='{$directory}/{$file["name"]}'>";
                     if ($restore = $DB->get_record_sql("
                                 SELECT *
                                   FROM {local_backupftp_restore}
                                  WHERE remotefile = :remotefile
-                                 LIMIT 1", ["remotefile" => "{$pasta}/{$file["name"]}"])) {
+                                 LIMIT 1", ["remotefile" => "{$directory}/{$file["name"]}"])) {
                         $restoretext .= "<br> / <span style='color:#3F51B5'>" .
                             get_string('already_added_status', 'local_backupftp', ['status' => $restore->status]) . "</span>";
                     }
@@ -152,7 +166,7 @@ function local_backupftp_list_files($pasta) {
                         ['size' => \local_backupftp\server\ftp::format_bytes($file['size'])]);
                     $createdontime = get_string('created_on_time', 'local_backupftp', ['modify' => $file['modify']]);
 
-                    $internalreturn .= $OUTPUT->render_from_template("local_backupftp/restore/p", [
+                    $internalreturn .= $OUTPUT->render_from_template("local_backupftp/restore_p", [
                         "showinput" => $showinput,
                         "filename" => $file['name'],
                         "filesize" => $filesize,
@@ -163,7 +177,7 @@ function local_backupftp_list_files($pasta) {
             }
         }
 
-        $return .= $OUTPUT->render_from_template("local_backupftp/restore/fieldset", [
+        $return .= $OUTPUT->render_from_template("local_backupftp/restore_fieldset", [
             "infocategori_link" => $infocategori["link"],
             "unique" => $unique,
             "countall" => $countall,
@@ -175,40 +189,101 @@ function local_backupftp_list_files($pasta) {
 }
 
 /**
- * Function local_backupftp_get_categoria
+ * Function local_backupftp_list_filesfromftp
  *
- * @param $pasta
+ * @param $directory
  *
- * @return array
- * @throws dml_exception
+ * @return string
  * @throws coding_exception
+ * @throws dml_exception
  */
-function local_backupftp_get_categoria($pasta) {
-    global $DB, $CFG;
+function local_backupftp_list_filesfromlocal($directory) {
+    global $DB, $CFG, $OUTPUT, $localfilepath;
 
-    $returnlink = get_string('category_link', 'local_backupftp', "{$CFG->wwwroot}/course/management.php?categoryid=1");
+    $localfileenable = get_config("local_backupftp", "localfileenable");
+    if (!$localfileenable) {
+        return "";
+    }
 
-    $categorias = explode("/", $pasta);
-    unset($categorias[0]);
-    $categoriaid = get_config("local_backupftp", "categorystart");
-    foreach ($categorias as $categoriname) {
-        if ($categoriaid == -1) {
-            $returnlink .= " / <span style='color: #E91E63;'>{$categoriname}</span>";
-        } else {
-            $categoriadb = $DB->get_record_sql("
-                    SELECT *
-                      FROM {course_categories}
-                     WHERE name LIKE '{$categoriname}'
-                       AND parent = {$categoriaid}");
-            if ($categoriadb) {
-                $categoriaid = $categoriadb->id;
-                $returnlink .= " / <a href='{$CFG->wwwroot}/course/management.php?categoryid={$categoriadb->id}'
-                                      target='blank'>{$categoriname}</a>";
-            } else {
-                $categoriaid = -1;
-                $returnlink .= " / <span style='color: #E91E63;'>{$categoriname}</span>";
+    $files = [];
+    foreach (new DirectoryIterator($directory) as $fileInfo) {
+        if ($fileInfo->isDot()) {
+            continue;
+        }
+        $files[] = [
+            "type" => $fileInfo->isDir() ? "dir" : "file",
+            "size" => $fileInfo->isFile() ? $fileInfo->getSize() : 0,
+            "modify" => date("Y-m-d H:i:s", $fileInfo->getMTime()),
+            "name" => $fileInfo->getPathname(),
+        ];
+
+    }
+    $return = "";
+    if ($files) {
+        $unique = uniqid();
+        $categoria = str_replace($localfilepath, "", $directory);
+
+        $infocategori = \local_backupftp\util\category::get_category($categoria);
+
+        $countall = $countexist = 0;
+        $internalreturn = "";
+        foreach ($files as $file) {
+            if ($file["type"] == "dir") {
+                $internalreturn .= local_backupftp_list_filesfromlocal($file["name"]);
+            } else if ($file["type"] == "file") {
+
+                $countall++;
+
+                $extension = pathinfo($file["name"], PATHINFO_EXTENSION);
+                if ($extension == "mbz") {
+                    $restoretext = "";
+                    $showinput = "<input type='checkbox' name='file[]' value='{$file["name"]}'>";
+                    if ($restore = $DB->get_record_sql("
+                                SELECT *
+                                  FROM {local_backupftp_restore}
+                                 WHERE remotefile = :remotefile
+                                 LIMIT 1", ["remotefile" => "{$file["name"]}"])) {
+                        $restoretext .= "<br> / <span style='color:#3F51B5'>" .
+                            get_string('already_added_status', 'local_backupftp', ['status' => $restore->status]) . "</span>";
+                    }
+
+                    $filename = pathinfo($file["name"], PATHINFO_FILENAME);
+                    if ($infocategori["id"] > 1 && $course = $DB->get_record_sql("
+                                SELECT id
+                                  FROM {course}
+                                 WHERE fullname = :fullname
+                                   AND category = :category",
+                            ["fullname" => $filename, "category" => $infocategori["id"]])) {
+                        $showinput = "";
+                        $restoretext .=
+                            " / <a style='color:#a41d1d' target='_blank' href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>" .
+                            get_string('course_already_exists', 'local_backupftp') . "</a>";
+                        $countexist++;
+                    }
+
+                    $filesize = get_string('file_size', 'local_backupftp',
+                        ['size' => \local_backupftp\server\ftp::format_bytes($file['size'])]);
+                    $createdontime = get_string('created_on_time', 'local_backupftp', ['modify' => $file['modify']]);
+
+                    $internalreturn .= $OUTPUT->render_from_template("local_backupftp/restore_p", [
+                        "showinput" => $showinput,
+                        "filename" => $file['name'],
+                        "filesize" => $filesize,
+                        "createdontime" => $createdontime,
+                        "restoretext" => $restoretext,
+                    ]);
+                }
             }
         }
+
+        $return .= $OUTPUT->render_from_template("local_backupftp/restore_fieldset", [
+            "infocategori_link" => $infocategori["link"],
+            "unique" => $unique,
+            "countall" => $countall,
+            "countexist" => $countexist,
+            "data" => $internalreturn,
+        ]);
     }
-    return ["link" => $returnlink, "id" => $categoriaid];
+    return $return;
 }
+

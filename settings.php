@@ -42,6 +42,27 @@ if ($hassiteconfig) {
 }
 
 if (is_siteadmin()) {
+
+    $setting = new admin_setting_heading("local_backupftp/settings_local",
+        get_string("settings_local", "local_backupftp"), "");
+    $settings->add($setting);
+
+    $name = "local_backupftp/localfileenable";
+    $title = get_string("settings_localfile", "local_backupftp");
+    $description = get_string("settings_localfile_desc", "local_backupftp");
+    $setting = new admin_setting_configcheckbox($name, $title, $description, 1);
+    $settings->add($setting);
+
+    $name = "local_backupftp/localfilepath";
+    $title = get_string("settings_localfilepath", "local_backupftp");
+    $description = get_string("settings_localfilepath_desc", "local_backupftp");
+    $setting = new admin_setting_configtext($name, $title, $description, "");
+    $settings->add($setting);
+
+    $setting = new admin_setting_heading("local_backupftp/settings_ftp",
+        get_string("settings_ftp", "local_backupftp"), "");
+    $settings->add($setting);
+
     $name = "local_backupftp/ftpenable";
     $title = get_string("settings_ftpenable", "local_backupftp");
     $setting = new admin_setting_configcheckbox($name, $title, "", 1);
@@ -79,11 +100,6 @@ if (is_siteadmin()) {
     $title = get_string("settings_ftppasta", "local_backupftp");
     $description = get_string("settings_ftppasta_desc", "local_backupftp");
     $setting = new admin_setting_configtext($name, $title, $description, "");
-    $settings->add($setting);
-
-    $name = "local_backupftp/localdelete";
-    $title = get_string("settings_localdelete", "local_backupftp");
-    $setting = new admin_setting_configcheckbox($name, $title, "", 1);
     $settings->add($setting);
 
     $name = "local_backupftp/ftporganize";

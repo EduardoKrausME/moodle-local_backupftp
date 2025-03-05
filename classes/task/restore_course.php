@@ -25,9 +25,9 @@
 namespace local_backupftp\task;
 
 use backup;
-use core_course_category;
 use Exception;
 use local_backupftp\server\ftp;
+use local_backupftp\util\category;
 use restore_controller;
 
 /**
@@ -51,6 +51,7 @@ class restore_course extends \core\task\scheduled_task {
      * @param int $limite
      *
      * @throws \dml_exception
+     * @throws \coding_exception
      */
     public function execute($limite = 30) {
         global $DB, $CFG;
@@ -75,9 +76,9 @@ class restore_course extends \core\task\scheduled_task {
 
         if ($backupftprestores) {
             foreach ($backupftprestores as $backupftprestore) {
-                $backupftprestore->timestart = time();
-                $backupftprestore->status = "initiated";
-                $DB->update_record("local_backupftp_restore", $backupftprestore);
+//                $backupftprestore->timestart = time();
+//                $backupftprestore->status = "initiated";
+//                $DB->update_record("local_backupftp_restore", $backupftprestore);
 
                 try {
                     $logs = $this->execute_restore($backupftprestore->remotefile);
@@ -94,7 +95,7 @@ class restore_course extends \core\task\scheduled_task {
                 echo "{$logs}\n<br>\n";
             }
         } else {
-            echo "Nothing to execute";
+            echo get_string("nothing_to_execute", "local_backupftp");
         }
     }
 
@@ -111,7 +112,11 @@ class restore_course extends \core\task\scheduled_task {
     private function execute_restore($remotefile) {
         global $CFG, $DB;
 
-        $logs = [];
+        $localfileenable = get_config("local_backupftp", "localfileenable");
+        $ftpenable = get_config("local_backupftp", "ftpenable");
+
+        echo "File is {$remotefile}<br>";
+        $logs = ["File is {$remotefile}"];
 
         $extension = pathinfo($remotefile, PATHINFO_EXTENSION);
         $filename = pathinfo($remotefile, PATHINFO_FILENAME);
@@ -124,32 +129,49 @@ class restore_course extends \core\task\scheduled_task {
         $localfile = make_temp_directory("local_backupftp") . "/backup-" . uniqid() . ".mbz";
         $fileresource = fopen($localfile, "w");
 
-        $ftp = new ftp();
-        $logs = $ftp->connect($logs);
+        if ($ftpenable) {
+            $ftp = new ftp();
+            $logs = $ftp->connect($logs);
 
-        $size = ftp_size($ftp->conn_id, $remotefile);
-        $size = preg_replace('/[^0-9]/', "", $size);
-        if (ftp::format_bytes($size) < 10) {
-            $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
+            $size = ftp_size($ftp->conn_id, $remotefile);
+            $size = preg_replace('/[^0-9]/', "", $size);
+            if (ftp::format_bytes($size) < 10) {
+                $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
+                return $logs;
+            }
+        } else if ($localfileenable) {
+            $size = filesize($remotefile);
+            if ($size < 10) {
+                $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
+                return $logs;
+            }
+        } else {
+            $logs[] = "plugin Disable";
             return $logs;
         }
 
         $logs[] = get_string('processing_file', 'local_backupftp',
             ['remote_file' => $remotefile, 'size' => ftp::format_bytes($size)]);
 
-        $logs = $ftp->connect($logs);
-        if (ftp_fget($ftp->conn_id, $fileresource, $remotefile, FTP_BINARY)) {
-            $logs[] = get_string('file_found_and_downloaded', 'local_backupftp');
-        } else {
-            $logs[] = get_string('error_downloading_file', 'local_backupftp', ['error' => error_get_last()]);
-            return $logs;
+        if ($ftpenable) {
+            $logs = $ftp->connect($logs);
+            if (ftp_fget($ftp->conn_id, $fileresource, $remotefile, FTP_BINARY)) {
+                $logs[] = get_string('file_found_and_downloaded', 'local_backupftp');
+            } else {
+                $logs[] = get_string('error_downloading_file', 'local_backupftp', ['error' => error_get_last()]);
+                return $logs;
+            }
+        } else if ($localfileenable) {
+            copy($remotefile, $localfile);
+            echo " Size: " . filesize($localfile);
         }
 
         $packer = get_file_packer("application/vnd.moodle.backup");
-        $backupid = \restore_controller::get_tempdir_name(SITEID, get_admin()->id);
-        $path = make_temp_directory("local_backupftp") . "/backup/{$backupid}/";
+        $backuptmpdir = \restore_controller::get_tempdir_name(SITEID, get_admin()->id);
+        $path = make_backup_temp_directory($backuptmpdir, true);
         if ($packer->extract_to_pathname($localfile, $path)) {
             $logs[] = get_string('mbz_extracted_successfully', 'local_backupftp');
+            $logs[] = $path;
         } else {
             $logs[] = get_string('error_extracting_mbz', 'local_backupftp');
             return $logs;
@@ -157,10 +179,9 @@ class restore_course extends \core\task\scheduled_task {
 
         $transaction = $DB->start_delegated_transaction();
 
-        $folder = $backupid;
         $userdoingrestore = get_admin()->id;
 
-        $categoria = $this->categoryid($remotefile, $logs);
+        $categoria = category::get_categoryid($remotefile, $logs);
         $logs[] = get_string('adding_to_category', 'local_backupftp', ['categoria' => $categoria]);
 
         $course = $DB->get_record_sql("SELECT id FROM {course} WHERE fullname = :fullname AND category = :category",
@@ -170,28 +191,33 @@ class restore_course extends \core\task\scheduled_task {
                 ['course_url' => "{$CFG->wwwroot}/course/view.php?id={$course->id}"]);
             return $logs;
         }
-
         $courseid = \restore_dbops::create_new_course("", "", $categoria);
         $logs[] = get_string('access_course', 'local_backupftp',
             ['course_url' => "{$CFG->wwwroot}/course/view.php?id={$courseid}"]);
 
-        $controller = new restore_controller($folder, $courseid,
+        $controller = new restore_controller($backuptmpdir, $courseid,
             backup::INTERACTIVE_NO, backup::MODE_GENERAL, $userdoingrestore,
             backup::TARGET_NEW_COURSE);
-        if ($controller->execute_precheck()) {
-            $controller->execute_plan();
-        } else {
-            try {
-                $transaction->rollback(new Exception("..."));
-            } catch (Exception $e) {
-                unset($transaction);
-                $controller->destroy();
-                unset($controller);
-                unlink($localfile);
 
-                $logs[] = get_string('pre_check_failure', 'local_backupftp');
-                return $logs;
+        try {
+            if ($controller->execute_precheck()) {
+                $controller->execute_plan();
+            } else {
+                try {
+                    $transaction->rollback(new Exception("..."));
+                } catch (Exception $e) {
+                    unset($transaction);
+                    $controller->destroy();
+                    unset($controller);
+                    unlink($localfile);
+
+                    $logs[] = get_string('pre_check_failure', 'local_backupftp');
+                    return $logs;
+                }
             }
+        } catch (Exception $e) {
+            $logs[] = get_string('pre_check_failure', 'local_backupftp');
+            return $logs;
         }
 
         unset($transaction);
@@ -202,51 +228,5 @@ class restore_course extends \core\task\scheduled_task {
         $logs[] = get_string('temporary_files_deleted', 'local_backupftp');
 
         return $logs;
-    }
-
-    /**
-     * Function categoryid
-     *
-     * @param $remotefile
-     * @param $logs
-     *
-     * @return int|mixed
-     * @throws \dml_exception
-     * @throws \moodle_exception
-     */
-    private function categoryid($remotefile, &$logs) {
-        global $DB;
-
-        $ftppasta = get_config("local_backupftp", "ftppasta");
-        $categoria = str_replace($ftppasta, "", $remotefile);
-
-        $dirname = pathinfo($categoria, PATHINFO_DIRNAME);
-
-        $categorias = explode("/", $dirname);
-        unset($categorias[0]);
-
-        $categoriaid = get_config("local_backupftp", "categorystart");
-        foreach ($categorias as $categoriname) {
-            $categoriadb = $DB->get_record_sql("
-                    SELECT *
-                      FROM {course_categories}
-                     WHERE name LIKE '{$categoriname}'
-                       AND parent = {$categoriaid}");
-            if ($categoriadb) {
-                $categoriaid = $categoriadb->id;
-            } else {
-                $category = (object)[
-                    "name" => $categoriname,
-                    "parent" => $categoriaid,
-                    "visible" => 1,
-                    "visibleold" => 1,
-                ];
-                $category = core_course_category::create($category);
-                $categoriaid = $category->id;
-
-                $logs[] = get_string('category_created_successfully', 'local_backupftp', ['categoria_nome' => $categoriname]);
-            }
-        }
-        return $categoriaid;
     }
 }
