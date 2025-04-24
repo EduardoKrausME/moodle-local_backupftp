@@ -59,7 +59,7 @@ class backup_course extends \core\task\scheduled_task {
         require_once("{$CFG->dirroot}/backup/util/includes/backup_includes.php");
         require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
 
-        if ($CFG->dbtype == "pgsql") {
+        if ($DB->get_dbfamily() == "postgres") {
             $backupftpcourses = $DB->get_records_sql("
                     SELECT * FROM {local_backupftp_course}
                      WHERE status LIKE 'waiting'

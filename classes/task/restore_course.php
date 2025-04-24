@@ -60,7 +60,7 @@ class restore_course extends \core\task\scheduled_task {
         require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
         require_once("{$CFG->dirroot}/course/classes/category.php");
 
-        if ($CFG->dbtype == "pgsql") {
+        if ($DB->get_dbfamily() == "postgres") {
             $backupftprestores = $DB->get_records_sql("
                 SELECT * FROM {local_backupftp_restore}
                  WHERE status LIKE 'waiting'
