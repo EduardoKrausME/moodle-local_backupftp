@@ -191,8 +191,8 @@ class backup_course extends \core\task\scheduled_task {
             if ($ftpnames) {
                 $course = $DB->get_record("course", ["id" => $courseid]);
                 $filename = "{$course->fullname}.mbz";
+                $filename = str_replace("/", ".", $filename);
             }
-            $filename = str_replace("/", ".", $filename);
 
             $paths = [];
             if ($ftporganize) {
@@ -244,7 +244,12 @@ class backup_course extends \core\task\scheduled_task {
                 ftp_close($ftp->conn_id);
             }
             if ($localfileenable) {
-                $localfile = "{$localfilepath}/{$path}/{$filename}";
+                if ($ftporganize) {
+                    $backuppath = implode("/", $paths);
+                    $localfile = "{$localfilepath}/{$backuppath}/{$filename}";
+                } else {
+                    $localfile = "{$localfilepath}/{$filename}";
+                }
                 copy($localtempfile, $localfile);
             }
         } else {
