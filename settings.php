@@ -52,7 +52,7 @@ if (is_siteadmin()) {
     $setting = new admin_setting_configcheckbox($name, $title, "", 1);
     $settings->add($setting);
 
-    $name = "local_backupftp/settingsrootanonymize";
+    $name = "local_backupftp/settingrootanonymize";
     $title = get_string("settings_rootsettinganonymize", "local_backupftp");
     $setting = new admin_setting_configcheckbox($name, $title, "", 0);
     $settings->add($setting);
