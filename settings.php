@@ -47,6 +47,16 @@ if (is_siteadmin()) {
         get_string("settings_mbz_settings", "local_backupftp"), "");
     $settings->add($setting);
 
+    $name = "local_backupftp/settingsrootusers";
+    $title = get_string("settings_rootsettingusers", "local_backupftp");
+    $setting = new admin_setting_configcheckbox($name, $title, "", 1);
+    $settings->add($setting);
+
+    $name = "local_backupftp/settingsrootanonymize";
+    $title = get_string("settings_rootsettinganonymize", "local_backupftp");
+    $setting = new admin_setting_configcheckbox($name, $title, "", 0);
+    $settings->add($setting);
+
     $name = "local_backupftp/ftporganize";
     $title = get_string("settings_ftporganize", "local_backupftp");
     $description = get_string("settings_ftporganize_desc", "local_backupftp");
