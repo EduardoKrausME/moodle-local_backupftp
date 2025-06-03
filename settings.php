@@ -47,7 +47,7 @@ if (is_siteadmin()) {
         get_string("settings_mbz_settings", "local_backupftp"), "");
     $settings->add($setting);
 
-    $name = "local_backupftp/settingsrootusers";
+    $name = "local_backupftp/settingrootusers";
     $title = get_string("settings_rootsettingusers", "local_backupftp");
     $setting = new admin_setting_configcheckbox($name, $title, "", 1);
     $settings->add($setting);
