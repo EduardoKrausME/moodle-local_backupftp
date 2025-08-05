@@ -49,9 +49,7 @@ class restore_course extends \core\task\scheduled_task {
      * Function execute
      *
      * @param int $limite
-     *
-     * @throws \dml_exception
-     * @throws \coding_exception
+     * @throws Exception
      */
     public function execute($limite = 30) {
         global $DB, $CFG;
@@ -59,6 +57,13 @@ class restore_course extends \core\task\scheduled_task {
         require_once("{$CFG->dirroot}/backup/util/includes/restore_includes.php");
         require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
         require_once("{$CFG->dirroot}/course/classes/category.php");
+
+        $sql = "
+            UPDATE {local_backupftp_restore}
+               SET status = 'waiting'
+             WHERE status = 'initiated'
+               AND timestart < (UNIX_TIMESTAMP() - 6 * 3600)";
+        $DB->execute($sql);
 
         if ($DB->get_dbfamily() == "postgres") {
             $backupftprestores = $DB->get_records_sql("
@@ -103,11 +108,8 @@ class restore_course extends \core\task\scheduled_task {
      * Function execute_restore
      *
      * @param $remotefile
-     *
      * @return array
-     * @throws \coding_exception
-     * @throws \dml_exception
-     * @throws \moodle_exception
+     * @throws Exception
      */
     private function execute_restore($remotefile) {
         global $CFG, $DB;

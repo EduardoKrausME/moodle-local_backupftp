@@ -27,6 +27,7 @@ namespace local_backupftp\task;
 use backup;
 use backup_controller;
 use backup_plan_dbops;
+use Exception;
 use local_backupftp\server\ftp;
 
 /**
@@ -49,15 +50,20 @@ class backup_course extends \core\task\scheduled_task {
      * Function execute
      *
      * @param int $limite
-     *
-     * @throws \dml_exception
-     * @throws \coding_exception
+     * @throws Exception
      */
     public function execute($limite = 30) {
         global $DB, $CFG;
 
         require_once("{$CFG->dirroot}/backup/util/includes/backup_includes.php");
         require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
+
+        $sql = "
+            UPDATE {local_backupftp_course}
+               SET status = 'waiting'
+             WHERE status = 'initiated'
+               AND timestart < (UNIX_TIMESTAMP() - 6 * 3600)";
+        $DB->execute($sql);
 
         if ($DB->get_dbfamily() == "postgres") {
             $backupftpcourses = $DB->get_records_sql("
@@ -98,10 +104,8 @@ class backup_course extends \core\task\scheduled_task {
      * Function execute_backup
      *
      * @param $courseid
-     *
      * @return array
-     * @throws \dml_exception
-     * @throws \coding_exception
+     * @throws Exception
      */
     private function execute_backup($courseid) {
         global $CFG;
@@ -156,11 +160,8 @@ class backup_course extends \core\task\scheduled_task {
      * @param $filename
      * @param $courseid
      * @param $logs
-     *
      * @return array
-     *
-     * @throws \dml_exception
-     * @throws \coding_exception
+     * @throws Exception
      */
     private function send_ftp($localtempfile, $filename, $courseid, $logs) {
         global $DB, $CFG;
