@@ -77,7 +77,7 @@ class ftp {
         }
 
         if ($ftppasv) {
-            ftppasv($this->conn_id, true);
+            ftp_pasv($this->conn_id, true);
         }
 
         return $logs;
