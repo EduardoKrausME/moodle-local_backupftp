@@ -22,6 +22,9 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use local_backupftp\task\backup_course;
+use local_backupftp\task\restore_course;
+
 require('../../config.php');
 
 $CFG->debug = 32767;
@@ -43,9 +46,9 @@ $action = optional_param("action", false, PARAM_TEXT);
 $nun = optional_param("nun", false, PARAM_TEXT);
 
 if ($action == "backup") {
-    (new \local_backupftp\task\backup_course())->execute($nun);
+    (new backup_course())->execute($nun);
 } else if ($action == "restore") {
-    (new \local_backupftp\task\restore_course())->execute($nun);
+    (new restore_course())->execute($nun);
 } else {
     echo $OUTPUT->render_from_template("local_backupftp/run-task", []);
 }

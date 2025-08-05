@@ -24,6 +24,8 @@
 
 namespace local_backupftp\report;
 
+use Exception;
+
 defined('MOODLE_INTERNAL') || die;
 
 require_once("{$CFG->libdir}/tablelib.php");
@@ -39,8 +41,7 @@ class backup_view extends \table_sql {
      * local_backupftp_view constructor.
      *
      * @param string $uniqueid
-     *
-     * @throws \coding_exception
+     * @throws Exception
      */
     public function __construct($uniqueid) {
         parent::__construct($uniqueid);
@@ -80,9 +81,8 @@ class backup_view extends \table_sql {
      * Function col_courseid
      *
      * @param $linha
-     *
      * @return string
-     * @throws \dml_exception
+     * @throws Exception
      */
     public function col_courseid($linha) {
         global $DB;
@@ -110,9 +110,8 @@ class backup_view extends \table_sql {
      * Function col_timecreated
      *
      * @param $linha
-     *
      * @return string
-     * @throws \coding_exception
+     * @throws Exception
      */
     public function col_timecreated($linha) {
         return userdate($linha->timecreated, get_string("strftimedatetimeshort", "langconfig"));
@@ -122,9 +121,8 @@ class backup_view extends \table_sql {
      * Function col_timestart
      *
      * @param $linha
-     *
      * @return string
-     * @throws \coding_exception
+     * @throws Exception
      */
     public function col_timestart($linha) {
         return userdate($linha->timestart, get_string("strftimedatetimeshort", "langconfig"));
@@ -134,9 +132,8 @@ class backup_view extends \table_sql {
      * Function col_timeend
      *
      * @param $linha
-     *
      * @return string
-     * @throws \coding_exception
+     * @throws Exception
      */
     public function col_timeend($linha) {
         return userdate($linha->timeend, get_string("strftimedatetimeshort", "langconfig"));
@@ -147,9 +144,7 @@ class backup_view extends \table_sql {
      *
      * @param int $pagesize
      * @param bool $useinitialsbar
-     *
-     * @throws \coding_exception
-     * @throws \dml_exception
+     * @throws Exception
      */
     public function query_db($pagesize, $useinitialsbar = true) {
         global $DB;

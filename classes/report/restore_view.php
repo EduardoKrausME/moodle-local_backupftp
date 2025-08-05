@@ -24,6 +24,8 @@
 
 namespace local_backupftp\report;
 
+use Exception;
+
 defined('MOODLE_INTERNAL') || die;
 
 require_once("{$CFG->libdir}/tablelib.php");
@@ -39,8 +41,7 @@ class restore_view extends \table_sql {
      * local_backupftp_view constructor.
      *
      * @param $uniqueid
-     *
-     * @throws \coding_exception
+     * @throws Exception
      */
     public function __construct($uniqueid) {
         parent::__construct($uniqueid);
@@ -80,8 +81,7 @@ class restore_view extends \table_sql {
      * Function col_logs
      *
      * @param $linha
-     *
-     * @return mixed
+     * @return string
      */
     public function col_logs($linha) {
         return str_replace("\n", "<br>", $linha->logs);
@@ -91,9 +91,8 @@ class restore_view extends \table_sql {
      * Function col_timecreated
      *
      * @param $linha
-     *
      * @return string
-     * @throws \coding_exception
+     * @throws Exception
      */
     public function col_timecreated($linha) {
         return userdate($linha->timecreated, get_string("strftimedatetimeshort", "langconfig"));
@@ -103,9 +102,8 @@ class restore_view extends \table_sql {
      * Function col_timestart
      *
      * @param $linha
-     *
      * @return string
-     * @throws \coding_exception
+     * @throws Exception
      */
     public function col_timestart($linha) {
         return userdate($linha->timestart, get_string("strftimedatetimeshort", "langconfig"));
@@ -115,9 +113,8 @@ class restore_view extends \table_sql {
      * Function col_timeend
      *
      * @param $linha
-     *
      * @return string
-     * @throws \coding_exception
+     * @throws Exception
      */
     public function col_timeend($linha) {
         return userdate($linha->timeend, get_string("strftimedatetimeshort", "langconfig"));
@@ -128,9 +125,7 @@ class restore_view extends \table_sql {
      *
      * @param int $pagesize
      * @param bool $useinitialsbar
-     *
-     * @throws \coding_exception
-     * @throws \dml_exception
+     * @throws Exception
      */
     public function query_db($pagesize, $useinitialsbar = true) {
         global $DB;

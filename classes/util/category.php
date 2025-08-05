@@ -25,6 +25,7 @@
 namespace local_backupftp\util;
 
 use core_course_category;
+use Exception;
 
 /**
  * Class category
@@ -36,10 +37,8 @@ class category {
      * Function local_backupftp_get_category
      *
      * @param $directory
-     *
      * @return array
-     * @throws \coding_exception
-     * @throws \dml_exception
+     * @throws Exception
      */
     public static function get_category($directory) {
         global $DB, $CFG;
@@ -76,10 +75,8 @@ class category {
      *
      * @param $remotefile
      * @param $logs
-     *
      * @return int|mixed
-     * @throws \dml_exception
-     * @throws \moodle_exception
+     * @throws Exception
      */
     public static function get_categoryid($remotefile, &$logs) {
         global $DB;
