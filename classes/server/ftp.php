@@ -25,6 +25,7 @@
 namespace local_backupftp\server;
 
 use dml_exception;
+use Exception;
 
 /**
  * Class ftp
@@ -39,9 +40,8 @@ class ftp {
      * Function connect
      *
      * @param array $logs
-     *
      * @return array
-     * @throws dml_exception
+     * @throws Exception
      */
     public function connect($logs = []) {
         $ftpurl = get_config("local_backupftp", "ftpurl");
@@ -87,7 +87,6 @@ class ftp {
      * Function format_bytes
      *
      * @param $bytes
-     *
      * @return mixed|string
      */
     public static function format_bytes($bytes) {
@@ -119,8 +118,7 @@ class ftp {
      *
      * @param $texto
      * @param $count
-     *
-     * @return mixed
+     * @return string
      */
     private static function remove_zero($texto, $count) {
         if ($count == 3) {
@@ -130,5 +128,88 @@ class ftp {
         } else {
             return str_replace(",0", "", $texto);
         }
+    }
+
+    /**
+     * remove_accents
+     *
+     * @param $string
+     * @return string
+     */
+    public static function remove_accents($string) {
+        $acentos = [
+            'À' => 'A',
+            'Á' => 'A',
+            'Â' => 'A',
+            'Ã' => 'A',
+            'Ä' => 'A',
+            'Å' => 'A',
+            'Æ' => 'AE',
+            'Ç' => 'C',
+            'È' => 'E',
+            'É' => 'E',
+            'Ê' => 'E',
+            'Ë' => 'E',
+            'Ì' => 'I',
+            'Í' => 'I',
+            'Î' => 'I',
+            'Ï' => 'I',
+            'Ð' => 'D',
+            'Ñ' => 'N',
+            'Ò' => 'O',
+            'Ó' => 'O',
+            'Ô' => 'O',
+            'Õ' => 'O',
+            'Ö' => 'O',
+            'Ø' => 'O',
+            'Ù' => 'U',
+            'Ú' => 'U',
+            'Û' => 'U',
+            'Ü' => 'U',
+            'Ý' => 'Y',
+            'Þ' => 'TH',
+            'ß' => 'ss',
+            'à' => 'a',
+            'á' => 'a',
+            'â' => 'a',
+            'ã' => 'a',
+            'ä' => 'a',
+            'å' => 'a',
+            'æ' => 'ae',
+            'ç' => 'c',
+            'è' => 'e',
+            'é' => 'e',
+            'ê' => 'e',
+            'ë' => 'e',
+            'ì' => 'i',
+            'í' => 'i',
+            'î' => 'i',
+            'ï' => 'i',
+            'ð' => 'd',
+            'ñ' => 'n',
+            'ò' => 'o',
+            'ó' => 'o',
+            'ô' => 'o',
+            'õ' => 'o',
+            'ö' => 'o',
+            'ø' => 'o',
+            'ù' => 'u',
+            'ú' => 'u',
+            'û' => 'u',
+            'ü' => 'u',
+            'ý' => 'y',
+            'þ' => 'th',
+            'ÿ' => 'y',
+            'ª' => 'a',
+            'º' => 'o'
+        ];
+
+        // Remove acentos.
+        $string = strtr($string, $acentos);
+
+        // Remove qualquer caractere que não seja A-Z, a-z, 0-9, hífen ou underline.
+        $string = preg_replace('/[^A-Za-z0-9\-_\.]/', '', $string);
+
+        return $string;
     }
 }

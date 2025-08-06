@@ -122,7 +122,7 @@ class backup_course extends \core\task\scheduled_task {
             backup::INTERACTIVE_YES, backup::MODE_GENERAL, get_admin()->id);
 
         $filename = backup_plan_dbops::get_default_backup_filename($bc->get_format(), $bc->get_type(), $bc->get_id(), false, false);
-        $bc->get_plan()->get_setting("filename")->set_value($filename);
+        $bc->get_plan()->get_setting("filename")->set_value(ftp::remove_accents($filename));
         $bc->get_plan()->get_setting("users")->set_value(get_config("local_backupftp", "settingrootusers"));
         $bc->get_plan()->get_setting("anonymize")->set_value(get_config("local_backupftp", "settingrootanonymize"));
 
