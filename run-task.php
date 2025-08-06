@@ -32,6 +32,7 @@ $CFG->debugdisplay = 1;
 ini_set("display_errors", "1");
 ini_set("log_errors", "1");
 session_write_close();
+ignore_user_abort(true);
 
 $PAGE->set_context(context_system::instance());
 $PAGE->set_url(new moodle_url("/local/backupftp/run-task.php"));
