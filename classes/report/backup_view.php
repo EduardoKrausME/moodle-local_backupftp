@@ -80,14 +80,14 @@ class backup_view extends \table_sql {
     /**
      * Function col_courseid
      *
-     * @param $linha
+     * @param $row
      * @return string
      * @throws Exception
      */
-    public function col_courseid($linha) {
+    public function col_courseid($row) {
         global $DB;
 
-        $course = $DB->get_record("course", ["id" => $linha->courseid]);
+        $course = $DB->get_record("course", ["id" => $row->courseid]);
         if ($course) {
             return $course->fullname;
         } else {
@@ -98,45 +98,53 @@ class backup_view extends \table_sql {
     /**
      * Function col_logs
      *
-     * @param $linha
+     * @param $row
      *
      * @return mixed
      */
-    public function col_logs($linha) {
-        return str_replace("\n", "<br>", $linha->logs);
+    public function col_logs($row) {
+        return str_replace("\n", "<br>", $row->logs);
     }
 
     /**
      * Function col_timecreated
      *
-     * @param $linha
+     * @param $row
      * @return string
      * @throws Exception
      */
-    public function col_timecreated($linha) {
-        return userdate($linha->timecreated, get_string("strftimedatetimeshort", "langconfig"));
+    public function col_timecreated($row) {
+        return userdate($row->timecreated, get_string("strftimedatetimeshort", "langconfig"));
     }
 
     /**
      * Function col_timestart
      *
-     * @param $linha
+     * @param $row
      * @return string
      * @throws Exception
      */
-    public function col_timestart($linha) {
-        return userdate($linha->timestart, get_string("strftimedatetimeshort", "langconfig"));
+    public function col_timestart($row) {
+        if ($row->timestart) {
+            return userdate($row->timestart, get_string("strftimedatetimeshort", "langconfig"));
+        }
     }
 
     /**
      * Function col_timeend
      *
-     * @param $linha
+     * @param $row
      * @return string
      * @throws Exception
      */
-    public function col_timeend($linha) {
-        return userdate($linha->timeend, get_string("strftimedatetimeshort", "langconfig"));
+    public function col_timeend($row) {
+        if ($row->timeend) {
+            $buttontitle = get_string("backup_restart", "local_backupftp");
+            $button = " - <a href='?recreate={$row->id}' class='btn btn-danger'>{$buttontitle}</a>";
+
+            $text = userdate($row->timeend, get_string("strftimedatetimeshort", "langconfig"));
+            return $text . $button;
+        }
     }
 
     /**

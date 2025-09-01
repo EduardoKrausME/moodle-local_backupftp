@@ -32,6 +32,7 @@ $string['backup_creation_parameters'] = 'Backup will be created with the followi
 $string['backup_end'] = 'Backup ended on';
 $string['backup_end_time'] = 'Backup End Time';
 $string['backup_report'] = 'Backup Report';
+$string['backup_restart'] = 'Refazer este backup';
 $string['backup_start'] = 'Backup started on';
 $string['backup_start_time'] = 'Backup Start Time';
 $string['backupftp:manage'] = 'Manage backup';

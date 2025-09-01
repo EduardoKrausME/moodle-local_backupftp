@@ -32,6 +32,17 @@ $PAGE->set_pagelayout("base");
 $PAGE->set_title(get_string('backup_report', 'local_backupftp'));
 $PAGE->set_heading(get_string('backup_report', 'local_backupftp'));
 
+if($recreate = optional_param("recreate", false, PARAM_INT)){
+    $data = (object)[
+        "id"=>$recreate,
+        "status" => "waiting",
+        "logs" => "",
+        "timestart" => 0,
+        "timeend" => 0,
+    ];
+    $DB->update_record("local_backupftp_course", $data);
+}
+
 require_login();
 require_capability("local/backupftp:manage", context_system::instance());
 
