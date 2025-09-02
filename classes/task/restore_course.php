@@ -65,30 +65,33 @@ class restore_course extends \core\task\scheduled_task {
                AND timestart < (UNIX_TIMESTAMP() - 6 * 3600)";
         $DB->execute($sql);
 
-        if ($DB->get_dbfamily() == "postgres") {
-            $backupftprestores = $DB->get_records_sql("
-                SELECT * FROM {local_backupftp_restore}
-                 WHERE status LIKE 'waiting'
-              ORDER BY RANDOM()
-                 LIMIT {$limite}");
-        } else {
-            $backupftprestores = $DB->get_records_sql("
-                SELECT * FROM {local_backupftp_restore}
-                 WHERE status LIKE 'waiting'
-              ORDER BY RAND()
-                 LIMIT {$limite}");
-        }
+        for ($i = 0; $i < $limite; $i++) {
+            if ($DB->get_dbfamily() == "postgres") {
+                $backupftprestore = $DB->get_record_sql("
+                    SELECT * FROM {local_backupftp_restore}
+                     WHERE status LIKE 'waiting'
+                  ORDER BY RANDOM()
+                     LIMIT 1"
+                );
+            } else {
+                $backupftprestore = $DB->get_record_sql("
+                    SELECT * FROM {local_backupftp_restore}
+                     WHERE status LIKE 'waiting'
+                  ORDER BY RAND()
+                     LIMIT 1"
+                );
+            }
 
-        if ($backupftprestores) {
-            foreach ($backupftprestores as $backupftprestore) {
+            if ($backupftprestore) {
                 $backupftprestore->timestart = time();
                 $backupftprestore->status = "initiated";
+                $backupftprestore->timeend = 0;
                 $DB->update_record("local_backupftp_restore", $backupftprestore);
 
                 try {
                     $logs = $this->execute_restore($backupftprestore->remotefile);
                 } catch (Exception $e) {
-                    $logs[] = "Exception: <b>" . $e->getMessage() . "</b>";
+                    $logs = ["Exception: <b>{$e->getMessage()}</b>"];
                 }
                 $logs = implode("\n", $logs);
 
@@ -97,10 +100,10 @@ class restore_course extends \core\task\scheduled_task {
                 $backupftprestore->status = "completed";
                 $DB->update_record("local_backupftp_restore", $backupftprestore);
 
-                echo "{$logs}\n<br>\n";
+                echo "{$logs}\n\n";
+            } else {
+                echo get_string("nothing_to_execute", "local_backupftp");
             }
-        } else {
-            echo get_string("nothing_to_execute", "local_backupftp");
         }
     }
 

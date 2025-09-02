@@ -65,45 +65,42 @@ class backup_course extends \core\task\scheduled_task {
                AND timestart < (UNIX_TIMESTAMP() - 6 * 3600)";
         $DB->execute($sql);
 
-        if ($DB->get_dbfamily() == "postgres") {
-            $backupftpcourses = $DB->get_records_sql("
+        for ($i = 0; $i < $limite; $i++) {
+            if ($DB->get_dbfamily() == "postgres") {
+                $backupftpcourse = $DB->get_record_sql("
                     SELECT * FROM {local_backupftp_course}
                      WHERE status LIKE 'waiting'
                   ORDER BY RANDOM()
-                     LIMIT {$limite}");
-        } else {
-            $backupftpcourses = $DB->get_records_sql("
+                     LIMIT 1"
+                );
+            } else {
+                $backupftpcourse = $DB->get_record_sql("
                     SELECT * FROM {local_backupftp_course}
                      WHERE status LIKE 'waiting'
                   ORDER BY RAND()
-                     LIMIT {$limite}");
-        }
-
-        if ($backupftpcourses) {
-            foreach ($backupftpcourses as $backupftpcourse) {
-                $where = [
-                    "id" => $backupftpcourse->id,
-                    "status" => "waiting",
-                ];
-                $backupftpcourse = $DB->get_record("local_backupftp_course", $where);
-                if ($backupftpcourse) {
-                    $backupftpcourse->timestart = time();
-                    $backupftpcourse->status = "initiated";
-                    $DB->update_record("local_backupftp_course", $backupftpcourse);
-
-                    $logs = $this->execute_backup($backupftpcourse->courseid);
-                    $logs = implode("\n", $logs);
-
-                    $backupftpcourse->logs = $logs;
-                    $backupftpcourse->timeend = time();
-                    $backupftpcourse->status = "completed";
-                    $DB->update_record("local_backupftp_course", $backupftpcourse);
-
-                    echo "{$logs}\n<br>\n";
-                }
+                     LIMIT 1"
+                );
             }
-        } else {
-            echo get_string("nothing_to_execute", "local_backupftp");
+
+            if ($backupftpcourse) {
+                $backupftpcourse->timestart = time();
+                $backupftpcourse->status = "initiated";
+                $backupftpcourse->timeend = 0;
+                $DB->update_record("local_backupftp_course", $backupftpcourse);
+
+                $logs = $this->execute_backup($backupftpcourse->courseid);
+                $logs = implode("\n", $logs);
+
+                $backupftpcourse->logs = $logs;
+                $backupftpcourse->timeend = time();
+                $backupftpcourse->status = "completed";
+                $DB->update_record("local_backupftp_course", $backupftpcourse);
+
+                echo "{$logs}\n\n";
+            } else {
+                echo get_string("nothing_to_execute", "local_backupftp");
+                return;
+            }
         }
     }
 
