@@ -81,19 +81,26 @@ class backup_course extends \core\task\scheduled_task {
 
         if ($backupftpcourses) {
             foreach ($backupftpcourses as $backupftpcourse) {
-                $backupftpcourse->timestart = time();
-                $backupftpcourse->status = "initiated";
-                $DB->update_record("local_backupftp_course", $backupftpcourse);
+                $where = [
+                    "id" => $backupftpcourse->id,
+                    "status" => "waiting",
+                ];
+                $backupftpcourse = $DB->get_record("local_backupftp_course", $where);
+                if ($backupftpcourse) {
+                    $backupftpcourse->timestart = time();
+                    $backupftpcourse->status = "initiated";
+                    $DB->update_record("local_backupftp_course", $backupftpcourse);
 
-                $logs = $this->execute_backup($backupftpcourse->courseid);
-                $logs = implode("\n", $logs);
+                    $logs = $this->execute_backup($backupftpcourse->courseid);
+                    $logs = implode("\n", $logs);
 
-                $backupftpcourse->logs = $logs;
-                $backupftpcourse->timeend = time();
-                $backupftpcourse->status = "completed";
-                $DB->update_record("local_backupftp_course", $backupftpcourse);
+                    $backupftpcourse->logs = $logs;
+                    $backupftpcourse->timeend = time();
+                    $backupftpcourse->status = "completed";
+                    $DB->update_record("local_backupftp_course", $backupftpcourse);
 
-                echo "{$logs}\n<br>\n";
+                    echo "{$logs}\n<br>\n";
+                }
             }
         } else {
             echo get_string("nothing_to_execute", "local_backupftp");
