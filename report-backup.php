@@ -32,9 +32,9 @@ $PAGE->set_pagelayout("base");
 $PAGE->set_title(get_string('backup_report', 'local_backupftp'));
 $PAGE->set_heading(get_string('backup_report', 'local_backupftp'));
 
-if($recreate = optional_param("recreate", false, PARAM_INT)){
+if ($recreate = optional_param("recreate", false, PARAM_INT)) {
     $data = (object)[
-        "id"=>$recreate,
+        "id" => $recreate,
         "status" => "waiting",
         "logs" => "",
         "timestart" => 0,
