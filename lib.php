@@ -23,19 +23,6 @@
  */
 
 /**
- * Function local_backupftp_extends_navigation
- *
- * @param global_navigation $nav
- *
- * @throws \core\exception\moodle_exception
- * @throws coding_exception
- * @throws dml_exception
- */
-function local_backupftp_extends_navigation(global_navigation $nav) {
-    local_backupftp_extend_navigation($nav);
-}
-
-/**
  * Function local_backupftp_extend_navigation
  *
  * @param global_navigation $nav
