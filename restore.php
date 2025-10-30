@@ -286,4 +286,3 @@ function local_backupftp_list_filesfromlocal($directory) {
     }
     return $return;
 }
-
