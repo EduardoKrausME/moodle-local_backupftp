@@ -18,11 +18,15 @@
     @template local_backupftp/restore_form
 
     Example context (json):
-    {}
+    {
+        "actionurl": "http://moodle/restore.php",
+        "list_files_ftp": "file...",
+        "list_files_local": "file...",
+    }
 }}
 
 <form method="post" action="{{actionurl}}">
-    <input type="hidden" name="sesskey" value="{{sesskey}}">
+    <input type="hidden" name="sesskey" value="{{config.sesskey}}">
 
     <h2>{{#str}}settings_ftp, local_backupftp{{/str}}</h2>
     {{{list_files_ftp}}}
