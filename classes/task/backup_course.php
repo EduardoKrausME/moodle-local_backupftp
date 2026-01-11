@@ -49,11 +49,13 @@ class backup_course extends \core\task\scheduled_task {
     /**
      * Function execute
      *
-     * @param int $limite
+     * @param int $limit
      * @throws Exception
      */
-    public function execute($limite = 30) {
+    public function execute($limit = 30) {
         global $DB, $CFG;
+
+        $limit = max(1, $limit);
 
         require_once("{$CFG->dirroot}/backup/util/includes/backup_includes.php");
         require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
@@ -65,7 +67,7 @@ class backup_course extends \core\task\scheduled_task {
                AND timestart < (UNIX_TIMESTAMP() - 6 * 3600)";
         $DB->execute($sql);
 
-        for ($i = 0; $i < $limite; $i++) {
+        for ($i = 0; $i < $limit; $i++) {
             if ($DB->get_dbfamily() == "postgres") {
                 $backupftpcourse = $DB->get_record_sql("
                     SELECT * FROM {local_backupftp_course}
@@ -96,9 +98,9 @@ class backup_course extends \core\task\scheduled_task {
                 $backupftpcourse->status = "completed";
                 $DB->update_record("local_backupftp_course", $backupftpcourse);
 
-                echo "{$logs}\n\n";
+                mtrace($logs);
             } else {
-                echo get_string("nothing_to_execute", "local_backupftp");
+                mtrace(get_string("nothing_to_execute", "local_backupftp"));
                 return;
             }
         }
