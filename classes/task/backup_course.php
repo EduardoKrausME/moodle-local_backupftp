@@ -27,15 +27,17 @@ namespace local_backupftp\task;
 use backup;
 use backup_controller;
 use backup_plan_dbops;
+use core\task\scheduled_task;
 use Exception;
 use local_backupftp\server\ftp;
+use stored_file;
 
 /**
  * Class backup_course
  *
  * @package local_backupftp\task
  */
-class backup_course extends \core\task\scheduled_task {
+class backup_course extends scheduled_task {
 
     /**
      * Function get_name
@@ -60,12 +62,13 @@ class backup_course extends \core\task\scheduled_task {
         require_once("{$CFG->dirroot}/backup/util/includes/backup_includes.php");
         require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
 
+        $cutoff = time() - 6 * 3600;
         $sql = "
             UPDATE {local_backupftp_course}
                SET status = 'waiting'
              WHERE status = 'initiated'
-               AND timestart < (UNIX_TIMESTAMP() - 6 * 3600)";
-        $DB->execute($sql);
+               AND timestart < :cutoff";
+        $DB->execute($sql, ["cutoff" => $cutoff]);
 
         for ($i = 0; $i < $limit; $i++) {
             if ($DB->get_dbfamily() == "postgres") {
@@ -121,8 +124,7 @@ class backup_course extends \core\task\scheduled_task {
         $logs[] = get_string('backup_creation_parameters', 'local_backupftp') . "\n
    type     : COURSE
    courseid : {$courseid}
-   format   : MOODLE2
-   mode     : MODE_GENERAL";
+   format   : MOODLE2";
 
         $bc = new backup_controller(backup::TYPE_1COURSE, $courseid, backup::FORMAT_MOODLE,
             backup::INTERACTIVE_YES, backup::MODE_GENERAL, get_admin()->id);
@@ -136,7 +138,7 @@ class backup_course extends \core\task\scheduled_task {
         $bc->execute_plan();
         $results = $bc->get_results();
 
-        /** @var \stored_file $file */
+        /** @var stored_file $file */
         $file = $results["backup_destination"];
 
         // Do we need to store backup somewhere else?
@@ -148,8 +150,8 @@ class backup_course extends \core\task\scheduled_task {
             $l2 = $contenthash[2] . $contenthash[3];
             $localtempfile = "{$CFG->dataroot}/filedir/{$l1}/{$l2}/{$contenthash}";
 
-            $logs = $this->send_ftp($localtempfile, $file->get_filename(), $courseid, $logs);
-            mtrace("Local file deleted\n");
+            $logs = $this->send_file_ftp_local($localtempfile, $file->get_filename(), $courseid, $logs);
+            mtrace("Temp local file deleted");
             $file->delete();
         } else {
             $logs[] = "Error creating MBZ file";
@@ -160,7 +162,7 @@ class backup_course extends \core\task\scheduled_task {
     }
 
     /**
-     * Function send_ftp
+     * Function send_file_ftp_local
      *
      * @param $localtempfile
      * @param $filename
@@ -169,7 +171,7 @@ class backup_course extends \core\task\scheduled_task {
      * @return array
      * @throws Exception
      */
-    private function send_ftp($localtempfile, $filename, $courseid, $logs) {
+    private function send_file_ftp_local($localtempfile, $filename, $courseid, $logs) {
         global $DB, $CFG;
 
         $localfileenable = get_config("local_backupftp", "localfileenable");
@@ -180,7 +182,6 @@ class backup_course extends \core\task\scheduled_task {
         $ftporganize = get_config("local_backupftp", "ftporganize");
 
         if ($ftpenable || $localfileenable) {
-
             if ($ftpenable) {
                 $ftp = new ftp();
                 $logs = $ftp->connect($logs);
@@ -197,7 +198,7 @@ class backup_course extends \core\task\scheduled_task {
             $course = null;
             if ($ftpnames) {
                 $course = $DB->get_record("course", ["id" => $courseid]);
-                $filename = "{$course->fullname}.mbz";
+                $filename = "{$course->id} - {$course->fullname}.mbz";
                 $filename = str_replace("/", ".", $filename);
             }
 
@@ -257,7 +258,11 @@ class backup_course extends \core\task\scheduled_task {
                 } else {
                     $localfile = "{$localfilepath}/{$filename}";
                 }
-                copy($localtempfile, $localfile);
+                if (copy($localtempfile, $localfile)) {
+                    $logs[] = get_string('log:savelocal:success', 'local_backupftp', $localfile);
+                } else {
+                    $logs[] = get_string('log:savelocal:error', 'local_backupftp', $localfile);
+                }
             }
         } else {
             $logs[] = "FTP upload disabled";

@@ -15,45 +15,79 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Report for backup.
+ * Backup report page.
  *
  * @package   local_backupftp
  * @copyright 2025 Eduardo Kraus {@link https://eduardokraus.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once("../../config.php");
-require_once($CFG->libdir . "/tablelib.php");
-require_once(__DIR__ . "/classes/report/backup_view.php");
+use local_backupftp\report\backup_view;
 
-$PAGE->set_context(context_system::instance());
-$PAGE->set_url("/local/backupftp/report-backup.php");
-$PAGE->set_pagelayout("base");
+require(__DIR__ . '/../../config.php');
+require_once($CFG->libdir . '/tablelib.php');
+require_once(__DIR__ . '/classes/report/backup_view.php');
+
+global $DB, $PAGE, $OUTPUT;
+
+$context = context_system::instance();
+
+$PAGE->set_context($context);
+$PAGE->set_url(new moodle_url('/local/backupftp/report-backup.php'));
+$PAGE->set_pagelayout('base');
 $PAGE->set_title(get_string('backup_report', 'local_backupftp'));
 $PAGE->set_heading(get_string('backup_report', 'local_backupftp'));
 
-if ($recreate = optional_param("recreate", false, PARAM_INT)) {
-    $data = (object)[
-        "id" => $recreate,
-        "status" => "waiting",
-        "logs" => "",
-        "timestart" => 0,
-        "timeend" => 0,
-    ];
-    $DB->update_record("local_backupftp_course", $data);
+require_login();
+require_capability('local/backupftp:manage', $context);
+
+// Action: recreate (CSRF-protected).
+$recreate = optional_param('recreate', 0, PARAM_INT);
+if ($recreate > 0) {
+    require_sesskey();
+
+    if ($DB->record_exists('local_backupftp_course', ['id' => $recreate])) {
+        $DB->update_record('local_backupftp_course', (object)[
+            'id' => $recreate,
+            'status' => 'waiting',
+            'logs' => '',
+            'timestart' => 0,
+            'timeend' => 0,
+        ]);
+    }
+
+    redirect(new moodle_url('/local/backupftp/report-backup.php'));
 }
 
-require_login();
-require_capability("local/backupftp:manage", context_system::instance());
+// Action: requeue (CSRF-protected). Keep backward-compat with recreate.
+$requeue = optional_param('requeue', 0, PARAM_INT);
+$recreate = optional_param('recreate', 0, PARAM_INT);
+$targetid = ($requeue > 0) ? $requeue : $recreate;
 
-$table = new \local_backupftp\report\backup_view("backup_report");
+if ($targetid > 0) {
+    require_sesskey();
+
+    if ($DB->record_exists('local_backupftp_course', ['id' => $targetid])) {
+        $DB->update_record('local_backupftp_course', (object)[
+            'id' => $targetid,
+            'status' => 'waiting',
+            'logs' => '',
+            'timestart' => 0,
+            'timeend' => 0,
+        ]);
+    }
+
+    redirect(new moodle_url('/local/backupftp/report-backup.php'));
+}
+
+$table = new backup_view('backup_report');
 
 if (!$table->is_downloading()) {
     echo $OUTPUT->header();
-    echo $OUTPUT->heading(get_string('report', 'local_backupftp'), 2, "main", "backupheading");
+    echo $OUTPUT->heading(get_string('report', 'local_backupftp'), 2, 'main', 'backupheading');
 }
 
-$table->define_baseurl("{$CFG->wwwroot}/local/backupftp/report-backup.php");
+$table->define_baseurl(new moodle_url('/local/backupftp/report-backup.php'));
 $table->out(40, true);
 
 if (!$table->is_downloading()) {

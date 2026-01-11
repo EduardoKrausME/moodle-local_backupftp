@@ -15,62 +15,62 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Restore view file
+ * Restore view table.
  *
  * @package   local_backupftp
- * @copyright 2025 Eduardo Kraus {@link https://eduardokraus.com}
+ * @copyright 2025 Eduardo Kraus
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_backupftp\report;
 
 use Exception;
+use table_sql;
 
 defined('MOODLE_INTERNAL') || die;
 
-require_once("{$CFG->libdir}/tablelib.php");
+require_once($CFG->libdir . '/tablelib.php');
 
 /**
- * Class restore_view
- *
- * @package local_backupftp\report
+ * Table for restore queue/report.
  */
-class restore_view extends \table_sql {
+class restore_view extends table_sql {
 
     /**
-     * local_backupftp_view constructor.
+     * Constructor.
      *
-     * @param $uniqueid
+     * @param string $uniqueid Unique table id.
      * @throws Exception
      */
-    public function __construct($uniqueid) {
+    public function __construct(string $uniqueid) {
         parent::__construct($uniqueid);
 
         $this->is_downloadable(true);
         $this->show_download_buttons_at([TABLE_P_BOTTOM]);
 
-        $download = optional_param("download", null, PARAM_ALPHA);
-        if ($download) {
+        $download = optional_param('download', null, PARAM_ALPHA);
+        if (!empty($download)) {
             raise_memory_limit(MEMORY_EXTRA);
-            $filename = get_string("restore_report", "local_backupftp");
+            $filename = get_string('restore_report', 'local_backupftp');
             $this->is_downloading($download, $filename);
         }
 
         $columns = [
-            "remotefile",
-            "status",
-            "logs",
-            "timecreated",
-            "timestart",
-            "timeend",
+            'remotefile',
+            'status',
+            'logs',
+            'timecreated',
+            'timestart',
+            'timeend',
         ];
+
         $headers = [
-            get_string("remote_file", "local_backupftp"),
-            get_string("status", "local_backupftp"),
-            get_string("logs", "local_backupftp"),
-            get_string("created_at", "local_backupftp"),
-            get_string("backup_start_time", "local_backupftp"),
-            get_string("backup_end_time", "local_backupftp"),
+            get_string('remote_file', 'local_backupftp'),
+            get_string('status', 'local_backupftp'),
+            get_string('logs', 'local_backupftp'),
+            get_string('created_at', 'local_backupftp'),
+            get_string('backup_start_time', 'local_backupftp'),
+            get_string('backup_end_time', 'local_backupftp'),
         ];
 
         $this->define_columns($columns);
@@ -78,80 +78,113 @@ class restore_view extends \table_sql {
     }
 
     /**
-     * Function col_logs
+     * Logs column (XSS-safe).
      *
-     * @param $linha
+     * @param \stdClass $row Row.
      * @return string
      */
-    public function col_logs($linha) {
-        return str_replace("\n", "<br>", $linha->logs);
+    public function col_logs(\stdClass $row): string {
+        if ($this->is_downloading()) {
+            return $row->logs;
+        }
+        return nl2br(s($row->logs));
     }
 
     /**
-     * Function col_timecreated
+     * Time created.
      *
-     * @param $linha
+     * @param \stdClass $row Row.
      * @return string
      * @throws Exception
      */
-    public function col_timecreated($linha) {
-        return userdate($linha->timecreated, get_string("strftimedatetimeshort", "langconfig"));
+    public function col_timecreated(\stdClass $row): string {
+        if (empty($row->timecreated)) {
+            return '-';
+        }
+        return userdate((int)$row->timecreated, get_string('strftimedatetimeshort', 'langconfig'));
     }
 
     /**
-     * Function col_timestart
+     * Time start.
      *
-     * @param $linha
+     * @param \stdClass $row Row.
      * @return string
      * @throws Exception
      */
-    public function col_timestart($linha) {
-        return userdate($linha->timestart, get_string("strftimedatetimeshort", "langconfig"));
+    public function col_timestart(\stdClass $row): string {
+        if (empty($row->timestart)) {
+            return '-';
+        }
+        return userdate((int)$row->timestart, get_string('strftimedatetimeshort', 'langconfig'));
     }
 
     /**
-     * Function col_timeend
+     * Time end.
      *
-     * @param $linha
+     * @param \stdClass $row Row.
      * @return string
      * @throws Exception
      */
-    public function col_timeend($linha) {
-        return userdate($linha->timeend, get_string("strftimedatetimeshort", "langconfig"));
+    public function col_timeend(\stdClass $row): string {
+        if (empty($row->timeend)) {
+            return '-';
+        }
+        return userdate((int)$row->timeend, get_string('strftimedatetimeshort', 'langconfig'));
     }
 
     /**
-     * Function query_db
+     * Query DB.
      *
-     * @param int $pagesize
-     * @param bool $useinitialsbar
+     * @param int $pagesize Page size.
+     * @param bool $useinitialsbar Initial bar.
      * @throws Exception
      */
-    public function query_db($pagesize, $useinitialsbar = true) {
+    public function query_db($pagesize, $useinitialsbar = true): void {
         global $DB;
 
+        $sortable = [
+            'remotefile' => 'lbr.remotefile',
+            'status' => 'lbr.status',
+            'timecreated' => 'lbr.timecreated',
+            'timestart' => 'lbr.timestart',
+            'timeend' => 'lbr.timeend',
+        ];
+
         $order = $this->get_sort_for_table($this->uniqueid);
-        if (!$order) {
-            $order = "timecreated DESC";
+        $orderby = 'lbr.timecreated DESC';
+
+        if (!empty($order)) {
+            $parts = array_map('trim', explode(',', $order));
+            $safe = [];
+
+            foreach ($parts as $part) {
+                if (!preg_match('/^([a-z0-9_]+)\s+(ASC|DESC)$/i', $part, $m)) {
+                    continue;
+                }
+                $col = strtolower($m[1]);
+                $dir = strtoupper($m[2]);
+                if (!isset($sortable[$col])) {
+                    continue;
+                }
+                $safe[] = $sortable[$col] . ' ' . $dir;
+            }
+
+            if (!empty($safe)) {
+                $orderby = implode(', ', $safe);
+            }
         }
 
-        $limit = "LIMIT 200";
-        if (optional_param("download", null, PARAM_ALPHA)) {
-            $limit = "";
-        }
+        $sql = "SELECT lbr.*
+                  FROM {local_backupftp_restore} lbr
+              ORDER BY {$orderby}";
 
-        $this->sql = "
-                SELECT *
-                  FROM {local_backupftp_restore}
-              ORDER BY {$order}
-                 {$limit}";
+        $limit = $this->is_downloading() ? 0 : 200;
 
         $this->pageable(false);
-
         if ($useinitialsbar && !$this->is_downloading()) {
             $this->initialbars(true);
         }
 
-        $this->rawdata = $DB->get_recordset_sql($this->sql, [], $this->get_page_start(), $this->get_page_size());
+        $this->rawdata = $DB->get_recordset_sql($sql, [], 0, $limit);
     }
 }

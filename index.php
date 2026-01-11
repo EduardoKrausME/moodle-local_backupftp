@@ -15,32 +15,50 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Index file
+ * Index page.
  *
  * @package   local_backupftp
  * @copyright 2025 Eduardo Kraus {@link https://eduardokraus.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require("../../config.php");
-global $DB, $PAGE, $OUTPUT;
+require(__DIR__ . '/../../config.php');
 
-$PAGE->set_context(context_system::instance());
-$PAGE->set_url(new moodle_url("/local/backupftp/index.php"));
-$PAGE->set_pagelayout("base");
-$PAGE->set_title(get_string("courses_and_categories", "local_backupftp"));
-$PAGE->set_heading(get_string("courses_and_categories", "local_backupftp"));
+global $PAGE, $OUTPUT;
+
+$context = context_system::instance();
+
+$PAGE->set_context($context);
+$PAGE->set_url(new moodle_url('/local/backupftp/index.php'));
+$PAGE->set_pagelayout('base');
+$PAGE->set_title(get_string('courses_and_categories', 'local_backupftp'));
+$PAGE->set_heading(get_string('courses_and_categories', 'local_backupftp'));
 
 require_login();
-require_capability("local/backupftp:manage", context_system::instance());
+require_capability('local/backupftp:manage', $context);
 
 echo $OUTPUT->header();
 
-echo "<p>" . get_string("add_backup", "local_backupftp") . " <a href='backup.php'>backup.php</a></p>";
-echo "<p>" . get_string("add_restore", "local_backupftp") . " <a href='restore.php'>restore.php</a></p>";
+echo html_writer::tag('p',
+    get_string('add_backup', 'local_backupftp') . ' ' .
+    html_writer::link(new moodle_url('/local/backupftp/backup.php'), 'backup.php')
+);
 
-echo "<h2>" . get_string("reports", "local_backupftp") . "</h2>";
-echo "<p>" . get_string("view_backup_report", "local_backupftp") . " <a href='report-backup.php'>report-backup.php</a></p>";
-echo "<p>" . get_string("view_restore_report", "local_backupftp") . " <a href='report-restore.php'>report-restore.php</a></p>";
+echo html_writer::tag('p',
+    get_string('add_restore', 'local_backupftp') . ' ' .
+    html_writer::link(new moodle_url('/local/backupftp/restore.php'), 'restore.php')
+);
+
+echo html_writer::tag('h2', get_string('reports', 'local_backupftp'));
+
+echo html_writer::tag('p',
+    get_string('view_backup_report', 'local_backupftp') . ' ' .
+    html_writer::link(new moodle_url('/local/backupftp/report-backup.php'), 'report-backup.php')
+);
+
+echo html_writer::tag('p',
+    get_string('view_restore_report', 'local_backupftp') . ' ' .
+    html_writer::link(new moodle_url('/local/backupftp/report-restore.php'), 'report-restore.php')
+);
 
 echo $OUTPUT->footer();

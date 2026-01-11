@@ -15,200 +15,194 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Ftp file
+ * FTP helper.
  *
  * @package   local_backupftp
- * @copyright 2025 Eduardo Kraus {@link https://eduardokraus.com}
+ * @copyright 2025 Eduardo Kraus{@link https://eduardokraus.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace local_backupftp\server;
 
-use dml_exception;
 use Exception;
 
 /**
- * Class ftp
- *
- * @package local_backupftp\server
+ * FTP connection helper.
  */
 class ftp {
-    /** @var resource */
-    public $connid;
 
     /**
-     * Function connect
+     * FTP connection resource.
      *
-     * @param array $logs
-     * @return array
+     * @var resource|null
+     */
+    public $conn_id = null;
+
+    /**
+     * Connect to FTP/FTPS using plugin config.
+     *
+     * @param array $logs Logs.
+     * @return array Updated logs.
      * @throws Exception
      */
-    public function connect($logs = []) {
-        $ftpurl = get_config("local_backupftp", "ftpurl");
-        $ftppasv = get_config("local_backupftp", "ftppasv");
-        $ftpusername = get_config("local_backupftp", "ftpusername");
-        $ftppassword = get_config("local_backupftp", "ftppassword");
+    public function connect(array $logs = []): array {
+        $ftpurl = trim(get_config('local_backupftp', 'ftpurl'));
+        $ftppasv = get_config('local_backupftp', 'ftppasv');
+        $ftpusername = get_config('local_backupftp', 'ftpusername');
+        $ftppassword = get_config('local_backupftp', 'ftppassword');
 
-        $url = parse_url($ftpurl);
-
-        if (isset($url["path"])) {
-            $url["host"] = $url["path"];
-        }
-        if (!isset($url["port"])) {
-            $url["port"] = 21;
-        }
-
-        if (isset($url["scheme"]) && $url["scheme"] == "ftps") {
-            $this->conn_id = ftp_ssl_connect($url["host"], $url["port"]);
-        } else {
-            $this->conn_id = ftp_connect($url["host"], $url["port"]);
-        }
-
-        if (!$this->conn_id) {
-            $logs[] = get_string("ftp_error_connecting", "local_backupftp");
-            $this->conn_id = null;
+        if ($ftpurl === '') {
+            $logs[] = get_string('ftp_error_connecting', 'local_backupftp');
             return $logs;
         }
 
-        if (!ftp_login($this->conn_id, $ftpusername, $ftppassword)) {
-            $logs[] = get_string("ftp_error_login", "local_backupftp", ['username' => $ftpusername, 'url' => $ftpurl]);
+        $parsed = $this->parse_ftp_url($ftpurl);
+        if (empty($parsed['host'])) {
+            $logs[] = get_string('ftp_error_connecting', 'local_backupftp');
+            return $logs;
+        }
+
+        $host = $parsed['host'];
+        $port = $parsed['port'];
+        $useftps = $parsed['ftps'];
+
+        if ($useftps && function_exists('ftp_ssl_connect')) {
+            $this->conn_id = @ftp_ssl_connect($host, $port);
+        } else {
+            $this->conn_id = @ftp_connect($host, $port);
+        }
+
+        if (empty($this->conn_id)) {
+            $logs[] = get_string('ftp_error_connecting', 'local_backupftp');
+            return $logs;
+        }
+
+        if (!@ftp_login($this->conn_id, $ftpusername, $ftppassword)) {
+            $logs[] = get_string('ftp_error_login', 'local_backupftp', ['username' => $ftpusername, 'url' => $ftpurl]);
             $this->conn_id = null;
             return $logs;
         }
 
         if ($ftppasv) {
-            ftp_pasv($this->conn_id, true);
+            @ftp_pasv($this->conn_id, true);
         }
 
         return $logs;
     }
 
     /**
-     * Function format_bytes
-     *
-     * @param $bytes
-     * @return mixed|string
+     * Close connection.
      */
-    public static function format_bytes($bytes) {
-        if ($bytes == 0) {
-            return "0";
+    public function close(): void {
+        if (!empty($this->conn_id)) {
+            @ftp_close($this->conn_id);
         }
-        $bytes = $bytes / 1000;
-        if ($bytes < 1000) {
-            return self::remove_zero(number_format($bytes, 1, ",", ".") . " KB", 1);
-        }
-
-        $bytes = $bytes / 1000 / 1000;
-        if ($bytes < 1000) {
-            return self::remove_zero(number_format($bytes, 1, ",", ".") . " MB", 1);
-        }
-
-        $bytes = $bytes / 1000 / 1000 / 1000;
-        if ($bytes < 1000) {
-            return self::remove_zero(number_format($bytes, 2, ",", ".") . " GB", 2);
-        }
-
-        $bytes = $bytes / 1000 / 1000 / 1000 / 1000;
-
-        return self::remove_zero(number_format($bytes, 3, ",", ".") . " TB", 3);
+        $this->conn_id = null;
     }
 
     /**
-     * Function remove_zero
+     * Parse FTP URL or host string.
      *
-     * @param $texto
-     * @param $count
-     * @return string
+     * @param string $ftpurl URL/host.
+     * @return array{host:string,port:int,ftps:bool}
      */
-    private static function remove_zero($texto, $count) {
-        if ($count == 3) {
-            return str_replace(",000", "", $texto);
-        } else if ($count == 2) {
-            return str_replace(",00", "", $texto);
-        } else {
-            return str_replace(",0", "", $texto);
+    private function parse_ftp_url(string $ftpurl): array {
+        $ftpurl = trim($ftpurl);
+
+        // If user provided only "host" (no scheme), parse_url treats it as path.
+        $candidate = $ftpurl;
+        if (!preg_match('~^[a-z][a-z0-9+\-.]*://~i', $candidate)) {
+            $candidate = 'ftp://' . $candidate;
         }
+
+        $url = @parse_url($candidate);
+        if (!is_array($url)) {
+            return ['host' => '', 'port' => 21, 'ftps' => false];
+        }
+
+        $scheme = strtolower(($url['scheme'] ?? 'ftp'));
+        $host = ($url['host'] ?? '');
+        if ($host === '' && !empty($url['path'])) {
+            $host = ltrim($url['path'], '/');
+        }
+
+        $port = ($url['port'] ?? 21);
+        $ftps = ($scheme === 'ftps');
+
+        return ['host' => $host, 'port' => $port, 'ftps' => $ftps];
     }
 
     /**
-     * remove_accents
+     * Format bytes into human readable.
      *
-     * @param $string
+     * @param int $bytes Bytes.
      * @return string
      */
-    public static function remove_accents($string) {
-        $acentos = [
-            'À' => 'A',
-            'Á' => 'A',
-            'Â' => 'A',
-            'Ã' => 'A',
-            'Ä' => 'A',
-            'Å' => 'A',
-            'Æ' => 'AE',
-            'Ç' => 'C',
-            'È' => 'E',
-            'É' => 'E',
-            'Ê' => 'E',
-            'Ë' => 'E',
-            'Ì' => 'I',
-            'Í' => 'I',
-            'Î' => 'I',
-            'Ï' => 'I',
-            'Ð' => 'D',
-            'Ñ' => 'N',
-            'Ò' => 'O',
-            'Ó' => 'O',
-            'Ô' => 'O',
-            'Õ' => 'O',
-            'Ö' => 'O',
-            'Ø' => 'O',
-            'Ù' => 'U',
-            'Ú' => 'U',
-            'Û' => 'U',
-            'Ü' => 'U',
-            'Ý' => 'Y',
-            'Þ' => 'TH',
-            'ß' => 'ss',
-            'à' => 'a',
-            'á' => 'a',
-            'â' => 'a',
-            'ã' => 'a',
-            'ä' => 'a',
-            'å' => 'a',
-            'æ' => 'ae',
-            'ç' => 'c',
-            'è' => 'e',
-            'é' => 'e',
-            'ê' => 'e',
-            'ë' => 'e',
-            'ì' => 'i',
-            'í' => 'i',
-            'î' => 'i',
-            'ï' => 'i',
-            'ð' => 'd',
-            'ñ' => 'n',
-            'ò' => 'o',
-            'ó' => 'o',
-            'ô' => 'o',
-            'õ' => 'o',
-            'ö' => 'o',
-            'ø' => 'o',
-            'ù' => 'u',
-            'ú' => 'u',
-            'û' => 'u',
-            'ü' => 'u',
-            'ý' => 'y',
-            'þ' => 'th',
-            'ÿ' => 'y',
-            'ª' => 'a',
-            'º' => 'o',
+    public static function format_bytes(int $bytes): string {
+        if ($bytes <= 0) {
+            return '0';
+        }
+
+        $kb = $bytes / 1000;
+        if ($kb < 1000) {
+            return self::remove_zero(number_format($kb, 1, ',', '.') . ' KB', 1);
+        }
+
+        $mb = $kb / 1000;
+        if ($mb < 1000) {
+            return self::remove_zero(number_format($mb, 1, ',', '.') . ' MB', 1);
+        }
+
+        $gb = $mb / 1000;
+        if ($gb < 1000) {
+            return self::remove_zero(number_format($gb, 2, ',', '.') . ' GB', 2);
+        }
+
+        $tb = $gb / 1000;
+        return self::remove_zero(number_format($tb, 3, ',', '.') . ' TB', 3);
+    }
+
+    /**
+     * Remove trailing zeros.
+     *
+     * @param string $text Text.
+     * @param int $count Decimals.
+     * @return string
+     */
+    private static function remove_zero(string $text, int $count): string {
+        if ($count === 3) {
+            return str_replace(',000', '', $text);
+        } else if ($count === 2) {
+            return str_replace(',00', '', $text);
+        }
+        return str_replace(',0', '', $text);
+    }
+
+    /**
+     * Remove accents and restrict to safe chars for file/folder names.
+     *
+     * @param string $string Input.
+     * @return string
+     */
+    public static function remove_accents(string $string): string {
+        $map = [
+            'À' => 'A','Á' => 'A','Â' => 'A','Ã' => 'A','Ä' => 'A','Å' => 'A','Æ' => 'AE','Ç' => 'C',
+            'È' => 'E','É' => 'E','Ê' => 'E','Ë' => 'E','Ì' => 'I','Í' => 'I','Î' => 'I','Ï' => 'I',
+            'Ð' => 'D','Ñ' => 'N','Ò' => 'O','Ó' => 'O','Ô' => 'O','Õ' => 'O','Ö' => 'O','Ø' => 'O',
+            'Ù' => 'U','Ú' => 'U','Û' => 'U','Ü' => 'U','Ý' => 'Y','Þ' => 'TH','ß' => 'ss',
+            'à' => 'a','á' => 'a','â' => 'a','ã' => 'a','ä' => 'a','å' => 'a','æ' => 'ae','ç' => 'c',
+            'è' => 'e','é' => 'e','ê' => 'e','ë' => 'e','ì' => 'i','í' => 'i','î' => 'i','ï' => 'i',
+            'ð' => 'd','ñ' => 'n','ò' => 'o','ó' => 'o','ô' => 'o','õ' => 'o','ö' => 'o','ø' => 'o',
+            'ù' => 'u','ú' => 'u','û' => 'u','ü' => 'u','ý' => 'y','þ' => 'th','ÿ' => 'y',
+            'ª' => 'a','º' => 'o',
         ];
 
-        // Remove acentos.
-        $string = strtr($string, $acentos);
+        $string = str_replace(chr(0), '', $string);
+        $string = strtr($string, $map);
 
-        // Remove qualquer caractere que não seja A-Z, a-z, 0-9, hífen ou underline.
-        $string = preg_replace('/[^A-Za-z0-9\-_\.]/', '', $string);
+        // Keep only safe characters.
+        $string = preg_replace('/[^A-Za-z0-9\-_\. ]/', '', $string);
+        $string = trim($string);
 
         return $string;
     }

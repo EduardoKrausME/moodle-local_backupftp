@@ -15,274 +15,360 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * restore file
+ * Restore page (queue restore jobs from FTP/local backups).
  *
  * @package   local_backupftp
  * @copyright 2025 Eduardo Kraus {@link https://eduardokraus.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require('../../config.php');
-require(__DIR__ . '/classes/server/ftp.php');
-global $DB, $PAGE, $OUTPUT;
+use local_backupftp\localfilepath;
+use local_backupftp\server\ftp;
+use local_backupftp\util\category;
 
-$PAGE->set_context(context_system::instance());
-$PAGE->set_url(new moodle_url("/local/backupftp/restore.php"));
-$PAGE->set_pagelayout("base");
+require(__DIR__ . '/../../config.php');
+
+global $DB, $CFG, $PAGE, $OUTPUT;
+
+$context = context_system::instance();
+
+$PAGE->set_context($context);
+$PAGE->set_url(new moodle_url('/local/backupftp/restore.php'));
+$PAGE->set_pagelayout('base');
 $PAGE->set_title(get_string('restore_courses_and_categories', 'local_backupftp'));
 $PAGE->set_heading(get_string('restore_courses_and_categories', 'local_backupftp'));
 
 require_login();
-require_capability("local/backupftp:manage", context_system::instance());
+require_capability('local/backupftp:manage', $context);
 
 echo $OUTPUT->header();
 
-$files = optional_param_array("file", false, PARAM_TEXT);
-if ($files) {
+// Config (used by list/render helpers below).
+$ftppasta = get_config('local_backupftp', 'ftppasta');
+$localfilepath = localfilepath::get_path();
+$ftpenable = get_config('local_backupftp', 'ftpenable');
+$localfileenable = get_config('local_backupftp', 'localfileenable');
 
-    foreach ($files as $file) {
-        if (!$DB->get_record_sql("
-                    SELECT *
-                      FROM {local_backupftp_restore}
-                     WHERE remotefile = '{$file}'
-                       AND status != 'completed'")) {
-            $data = (object)[
-                "remotefile" => $file,
-                "status" => "waiting",
-                "logs" => "",
-                "timecreated" => time(),
-                "timestart" => 0,
-                "timeend" => 0,
-            ];
-            $DB->insert_record("local_backupftp_restore", $data);
+// Handle POST: add selected files to restore queue.
+$files = optional_param_array('file', [], PARAM_RAW_TRIMMED);
+if (!empty($files)) {
+    require_sesskey();
 
-            echo "<p style='color:#2196F3;font-weight:bold;'>" .
-                get_string('file_added_to_restore_queue', 'local_backupftp', ['file' => $file]) . "</p>";
-
+    foreach ($files as $remotefile) {
+        $remotefile = local_backupftp_clean_remotefile($remotefile);
+        if ($remotefile === '') {
+            continue;
         }
+
+        if (!local_backupftp_is_allowed_restore_target($remotefile, $ftpenable, $ftppasta, $localfileenable, $localfilepath)) {
+            continue;
+        }
+
+        $exists = $DB->record_exists_select(
+            'local_backupftp_restore',
+            'remotefile = :remotefile AND status <> :status',
+            ['remotefile' => $remotefile, 'status' => 'completed']
+        );
+
+        if ($exists) {
+            continue;
+        }
+
+        $data = (object)[
+            'remotefile' => $remotefile,
+            'status' => 'waiting',
+            'logs' => '',
+            'timecreated' => time(),
+            'timestart' => 0,
+            'timeend' => 0,
+        ];
+        $DB->insert_record('local_backupftp_restore', $data);
+
+        echo html_writer::tag(
+            'p',
+            get_string('file_added_to_restore_queue', 'local_backupftp', ['file' => s(basename($remotefile))]),
+            ['style' => 'color:#2196F3;font-weight:bold;']
+        );
     }
 }
 
-echo $OUTPUT->render_from_template("local_backupftp/restore_info", []);
+// Info / links.
+echo $OUTPUT->render_from_template('local_backupftp/restore_info', []);
 
-require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
-
-$ftppasta = get_config("local_backupftp", "ftppasta");
-
-$localfilepath = get_config("local_backupftp", "localfilepath");
-$ftpenable = get_config("local_backupftp", "ftpenable");
-if (!isset($localfilepath[3])) {
-    $localfilepath = "{$CFG->dataroot}/backup";
+// Validate local path (avoid accidentally pointing to "/").
+if (strlen($localfilepath) < 4) {
+    $localfilepath = '';
+    $localfileenable = false;
 }
 
-echo $OUTPUT->render_from_template("local_backupftp/restore_form",
-    [
-        "list_files_ftp" => local_backupftp_list_filesfromftp($ftppasta),
-        "list_files_local" => local_backupftp_list_filesfromlocal($localfilepath),
-    ]);
+// Render selection form.
+echo $OUTPUT->render_from_template('local_backupftp/restore_form', [
+    'actionurl' => $PAGE->url->out(false),
+    'sesskey' => sesskey(),
+    'list_files_ftp' => $ftpenable ? local_backupftp_list_filesfromftp($ftppasta) : '',
+    'list_files_local' => $localfileenable ? local_backupftp_list_filesfromlocal($localfilepath) : '',
+]);
 
 echo $OUTPUT->footer();
 
 /**
- * Function local_backupftp_list_filesfromftp
- *
- * @param $directory
- *
- * @return string
- * @throws coding_exception
- * @throws dml_exception
+ * Basic remotefile sanitizer (keeps unicode/spaces, blocks traversal).
  */
-function local_backupftp_list_filesfromftp($directory) {
-    global $DB, $CFG, $OUTPUT, $ftppasta;
+function local_backupftp_clean_remotefile(string $remotefile): string {
+    $remotefile = trim(str_replace(chr(0), '', $remotefile));
 
-    $ftpenable = get_config("local_backupftp", "ftpenable");
-    if (!$ftpenable) {
-        return "";
+    if ($remotefile === '' || strpos($remotefile, '\\') !== false) {
+        return '';
+    }
+    if (preg_match('#(^|/)\.\.(/|$)#', $remotefile)) {
+        return '';
     }
 
-    $ftp = new \local_backupftp\server\ftp();
-    $ftp->connect();
-
-    if (!$ftp->conn_id) {
-        return get_string("ftp_error_connecting", "local_backupftp");
+    $ext = core_text::strtolower(pathinfo($remotefile, PATHINFO_EXTENSION));
+    if ($ext !== 'mbz') {
+        return '';
     }
 
-    $files = [];
-    $ftprawlists = ftp_rawlist($ftp->conn_id, $directory . "/");
-    foreach ($ftprawlists as $file) {
-        preg_match('/(.*?)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\w+ \d+ \d+:\d+)\s+(.*)/', $file, $info);
-        $files[] = [
-            "type" => strpos($info[0], "d") === 0 ? "dir" : "file",
-            "size" => $info[5],
-            "modify" => $info[6],
-            "name" => $info[7],
-        ];
-    }
-
-    $return = "";
-    if ($files) {
-        $unique = uniqid();
-        $categoria = str_replace($ftppasta, "", $directory);
-
-        $infocategori = \local_backupftp\util\category::get_category($categoria);
-
-        $countall = $countexist = 0;
-        $internalreturn = "";
-        foreach ($files as $file) {
-
-            if ($file["type"] == "dir") {
-                $internalreturn .= local_backupftp_list_filesfromftp("{$directory}/{$file["name"]}");
-            } else if ($file["type"] == "file") {
-                $countall++;
-
-                $extension = pathinfo($file["name"], PATHINFO_EXTENSION);
-                if ($extension == "mbz") {
-                    $restoretext = "";
-                    $showinput = "<input type='checkbox' name='file[]' value='{$directory}/{$file["name"]}'>";
-                    if ($restore = $DB->get_record_sql("
-                                SELECT *
-                                  FROM {local_backupftp_restore}
-                                 WHERE remotefile = :remotefile
-                                 LIMIT 1", ["remotefile" => "{$directory}/{$file["name"]}"])) {
-                        $restoretext .= "<br> / <span style='color:#3F51B5'>" .
-                            get_string('already_added_status', 'local_backupftp', ['status' => $restore->status]) . "</span>";
-                    }
-
-                    $filename = pathinfo($file["name"], PATHINFO_FILENAME);
-                    if ($infocategori["id"] > 1 && $course = $DB->get_record_sql("
-                                SELECT id
-                                  FROM {course}
-                                 WHERE fullname = :fullname
-                                   AND category = :category",
-                            ["fullname" => $filename, "category" => $infocategori["id"]])) {
-                        $showinput = "";
-                        $restoretext .=
-                            " / <a style='color:#a41d1d' target='_blank' href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>" .
-                            get_string('course_already_exists', 'local_backupftp') . "</a>";
-                        $countexist++;
-                    }
-
-                    $filesize = get_string('file_size', 'local_backupftp',
-                        ['size' => \local_backupftp\server\ftp::format_bytes($file['size'])]);
-                    $createdontime = get_string('created_on_time', 'local_backupftp', ['modify' => $file['modify']]);
-
-                    $internalreturn .= $OUTPUT->render_from_template("local_backupftp/restore_p", [
-                        "showinput" => $showinput,
-                        "filename" => $file['name'],
-                        "filesize" => $filesize,
-                        "createdontime" => $createdontime,
-                        "restoretext" => $restoretext,
-                    ]);
-                }
-            }
-        }
-
-        $return .= $OUTPUT->render_from_template("local_backupftp/restore_fieldset", [
-            "infocategori_link" => $infocategori["link"],
-            "unique" => $unique,
-            "countall" => $countall,
-            "countexist" => $countexist,
-            "data" => $internalreturn,
-        ]);
-    }
-    return $return;
+    return $remotefile;
 }
 
 /**
- * Function local_backupftp_list_filesfromftp
- *
- * @param $directory
- *
- * @return string
- * @throws coding_exception
- * @throws dml_exception
+ * Ensure the target file belongs to configured restore sources.
  */
-function local_backupftp_list_filesfromlocal($directory) {
-    global $DB, $CFG, $OUTPUT, $localfilepath;
+function local_backupftp_is_allowed_restore_target(
+    string $remotefile,
+    bool $ftpenable,
+    string $ftppasta,
+    bool $localfileenable,
+    string $localfilepath
+): bool {
+    if ($localfileenable && $localfilepath !== '') {
+        $root = realpath($localfilepath);
+        $real = realpath($remotefile);
+        if ($root && $real) {
+            $root = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            if (strpos($real, $root) === 0) {
+                return true;
+            }
+        }
+    }
 
-    $localfileenable = get_config("local_backupftp", "localfileenable");
-    if (!$localfileenable) {
-        return "";
+    if ($ftpenable && $ftppasta !== '') {
+        $prefix = rtrim($ftppasta, '/');
+        if (strpos($remotefile, $prefix . '/') === 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * List files from FTP source and return HTML for the restore form.
+ */
+function local_backupftp_list_filesfromftp(string $directory): string {
+    global $DB, $CFG, $OUTPUT, $ftppasta;
+
+    if (!get_config('local_backupftp', 'ftpenable')) {
+        return '';
+    }
+
+    require_once($CFG->dirroot . '/local/backupftp/classes/server/ftp.php');
+    $ftp = new ftp();
+    $ftp->connect();
+
+    if (empty($ftp->conn_id)) {
+        return html_writer::tag('p', get_string('ftp_error_connecting', 'local_backupftp'));
     }
 
     $files = [];
-    foreach (new DirectoryIterator($directory) as $fileinfo) {
-        if ($fileinfo->isDot()) {
+    $raw = @ftp_rawlist($ftp->conn_id, rtrim($directory, '/') . '/');
+
+    if (is_array($raw)) {
+        foreach ($raw as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+
+            $parts = preg_split('/\s+/', $line, 9);
+            if (count($parts) < 9) {
+                continue;
+            }
+
+            $perm = $parts[0];
+            $type = (isset($perm[0]) && $perm[0] === 'd') ? 'dir' : 'file';
+            $size = $parts[4];
+            $modify = $parts[5] . ' ' . $parts[6] . ' ' . $parts[7];
+            $name = $parts[8];
+
+            if ($name === '.' || $name === '..') {
+                continue;
+            }
+
+            $files[] = [
+                'type' => $type,
+                'size' => $size,
+                'modify' => $modify,
+                'name' => $name,
+            ];
+        }
+    }
+
+    if (empty($files)) {
+        return '';
+    }
+
+    $unique = uniqid('lbf_');
+    $categoria = str_replace($ftppasta, '', $directory);
+    $infocategori = category::get_category($categoria);
+
+    $internalreturn = '';
+
+    foreach ($files as $file) {
+        if ($file['type'] === 'dir') {
+            $internalreturn .= local_backupftp_list_filesfromftp(rtrim($directory, '/') . '/' . $file['name']);
             continue;
         }
-        $files[] = [
-            "type" => $fileinfo->isDir() ? "dir" : "file",
-            "size" => $fileinfo->isFile() ? $fileinfo->getSize() : 0,
-            "modify" => date("Y-m-d H:i:s", $fileinfo->getMTime()),
-            "name" => $fileinfo->getPathname(),
-        ];
 
-    }
-    $return = "";
-    if ($files) {
-        $unique = uniqid();
-        $categoria = str_replace($localfilepath, "", $directory);
-
-        $infocategori = \local_backupftp\util\category::get_category($categoria);
-
-        $countall = $countexist = 0;
-        $internalreturn = "";
-        foreach ($files as $file) {
-            if ($file["type"] == "dir") {
-                $internalreturn .= local_backupftp_list_filesfromlocal($file["name"]);
-            } else if ($file["type"] == "file") {
-
-                $countall++;
-
-                $extension = pathinfo($file["name"], PATHINFO_EXTENSION);
-                if ($extension == "mbz") {
-                    $restoretext = "";
-                    $showinput = "<input type='checkbox' name='file[]' value='{$file["name"]}'>";
-                    if ($restore = $DB->get_record_sql("
-                                SELECT *
-                                  FROM {local_backupftp_restore}
-                                 WHERE remotefile = :remotefile
-                                 LIMIT 1", ["remotefile" => "{$file["name"]}"])) {
-                        $restoretext .= "<br> / <span style='color:#3F51B5'>" .
-                            get_string('already_added_status', 'local_backupftp', ['status' => $restore->status]) . "</span>";
-                    }
-
-                    $filename = pathinfo($file["name"], PATHINFO_FILENAME);
-                    if ($infocategori["id"] > 1 && $course = $DB->get_record_sql("
-                                SELECT id
-                                  FROM {course}
-                                 WHERE fullname = :fullname
-                                   AND category = :category",
-                            ["fullname" => $filename, "category" => $infocategori["id"]])) {
-                        $showinput = "";
-                        $restoretext .=
-                            " / <a style='color:#a41d1d' target='_blank' href='{$CFG->wwwroot}/course/view.php?id={$course->id}'>" .
-                            get_string('course_already_exists', 'local_backupftp') . "</a>";
-                        $countexist++;
-                    }
-
-                    $filesize = get_string('file_size', 'local_backupftp',
-                        ['size' => \local_backupftp\server\ftp::format_bytes($file['size'])]);
-                    $createdontime = get_string('created_on_time', 'local_backupftp', ['modify' => $file['modify']]);
-
-                    $internalreturn .= $OUTPUT->render_from_template("local_backupftp/restore_p", [
-                        "showinput" => $showinput,
-                        "filename" => $file['name'],
-                        "filesize" => $filesize,
-                        "createdontime" => $createdontime,
-                        "restoretext" => $restoretext,
-                    ]);
-                }
-            }
+        $ext = core_text::strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if ($ext !== 'mbz') {
+            continue;
         }
 
-        $return .= $OUTPUT->render_from_template("local_backupftp/restore_fieldset", [
-            "infocategori_link" => $infocategori["link"],
-            "unique" => $unique,
-            "countall" => $countall,
-            "countexist" => $countexist,
-            "data" => $internalreturn,
+        $remotefile = rtrim($directory, '/') . '/' . $file['name'];
+
+        $restoretext = '';
+        $showinput = html_writer::empty_tag('input', [
+            'type' => 'checkbox',
+            'name' => 'file[]',
+            'value' => $remotefile,
+        ]);
+
+        if ($restore = $DB->get_record('local_backupftp_restore', ['remotefile' => $remotefile], '*', IGNORE_MULTIPLE)) {
+            $restoretext .= html_writer::empty_tag('br') . ' / ' .
+                html_writer::tag(
+                    'span',
+                    get_string('already_added_status', 'local_backupftp', ['status' => s($restore->status)]),
+                    ['style' => 'color:#3F51B5']
+                );
+        }
+
+        $filesize = get_string('file_size', 'local_backupftp', [
+            'size' => ftp::format_bytes($file['size']),
+        ]);
+        $createdontime = get_string('created_on_time', 'local_backupftp', ['modify' => s($file['modify'])]);
+
+        $internalreturn .= $OUTPUT->render_from_template('local_backupftp/restore_p', [
+            'showinput' => $showinput,
+            'filename' => $file['name'],
+            'filesize' => $filesize,
+            'createdontime' => $createdontime,
+            'restoretext' => $restoretext,
         ]);
     }
-    return $return;
+
+    return $OUTPUT->render_from_template('local_backupftp/restore_fieldset', [
+        'infocategori_link' => $infocategori['link'],
+        'unique' => $unique,
+        'data' => $internalreturn,
+    ]);
+}
+
+/**
+ * List files from local filesystem source and return HTML for the restore form.
+ */
+function local_backupftp_list_filesfromlocal(string $directory): string {
+    global $DB, $OUTPUT, $localfilepath;
+
+    if (!get_config('local_backupftp', 'localfileenable')) {
+        return '';
+    }
+
+    if ($directory === '' || !is_dir($directory) || !is_readable($directory)) {
+        return '';
+    }
+
+    $files = [];
+
+    foreach (new DirectoryIterator($directory) as $fileinfo) {
+        if ($fileinfo->isDot() || $fileinfo->isLink()) {
+            continue;
+        }
+
+        $files[] = [
+            'type' => $fileinfo->isDir() ? 'dir' : 'file',
+            'size' => $fileinfo->isFile() ? $fileinfo->getSize() : 0,
+            'modify' => date('Y-m-d H:i:s', $fileinfo->getMTime()),
+            'name' => $fileinfo->getPathname(),
+        ];
+    }
+
+    if (empty($files)) {
+        return '';
+    }
+
+    $unique = uniqid('lbf_');
+    $categoria = str_replace($localfilepath, '', $directory);
+    $infocategori = category::get_category($categoria);
+
+    $internalreturn = '';
+
+    foreach ($files as $file) {
+        if ($file['type'] === 'dir') {
+            $root = realpath($localfilepath);
+            $real = realpath($file['name']);
+            if ($root && $real) {
+                $root = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                if (strpos($real, $root) === 0) {
+                    $internalreturn .= local_backupftp_list_filesfromlocal($file['name']);
+                }
+            }
+            continue;
+        }
+
+        $ext = core_text::strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if ($ext !== 'mbz') {
+            continue;
+        }
+
+        $remotefile = $file['name'];
+
+        $restoretext = '';
+        $showinput = html_writer::empty_tag('input', [
+            'type' => 'checkbox',
+            'name' => 'file[]',
+            'value' => $remotefile,
+        ]);
+
+        if ($restore = $DB->get_record('local_backupftp_restore', ['remotefile' => $remotefile], '*', IGNORE_MULTIPLE)) {
+            $restoretext .= html_writer::empty_tag('br') . ' / ' .
+                html_writer::tag(
+                    'span',
+                    get_string('already_added_status', 'local_backupftp', ['status' => s($restore->status)]),
+                    ['style' => 'color:#3F51B5']
+                );
+        }
+
+        $displayname = basename($file['name']);
+
+        $filesize = get_string('file_size', 'local_backupftp', [
+            'size' => ftp::format_bytes($file['size']),
+        ]);
+        $createdontime = get_string('created_on_time', 'local_backupftp', ['modify' => s($file['modify'])]);
+
+        $internalreturn .= $OUTPUT->render_from_template('local_backupftp/restore_p', [
+            'showinput' => $showinput,
+            'filename' => $displayname,
+            'filesize' => $filesize,
+            'createdontime' => $createdontime,
+            'restoretext' => $restoretext,
+        ]);
+    }
+
+    return $OUTPUT->render_from_template('local_backupftp/restore_fieldset', [
+        'infocategori_link' => $infocategori['link'],
+        'unique' => $unique,
+        'data' => $internalreturn,
+    ]);
 }

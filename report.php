@@ -15,27 +15,28 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Report file
+ * Reports hub page.
  *
  * @package   local_backupftp
  * @copyright 2025 Eduardo Kraus {@link https://eduardokraus.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require('../../config.php');
-require_once("{$CFG->dirroot}/local/backupftp/classes/task/restore_course.php");
+require(__DIR__ . '/../../config.php');
 
-$PAGE->set_context(context_system::instance());
-$PAGE->set_url(new moodle_url("/local/backupftp/report.php"));
-$PAGE->set_pagelayout("base");
+global $PAGE, $OUTPUT;
+
+$context = context_system::instance();
+
+$PAGE->set_context($context);
+$PAGE->set_url(new moodle_url('/local/backupftp/report.php'));
+$PAGE->set_pagelayout('base');
 $PAGE->set_title(get_string('reports', 'local_backupftp'));
 $PAGE->set_heading(get_string('reports', 'local_backupftp'));
 
 require_login();
-require_capability("local/backupftp:manage", context_system::instance());
+require_capability('local/backupftp:manage', $context);
 
 echo $OUTPUT->header();
-
-echo $OUTPUT->render_from_template("local_backupftp/report", []);
-
+echo $OUTPUT->render_from_template('local_backupftp/report', []);
 echo $OUTPUT->footer();

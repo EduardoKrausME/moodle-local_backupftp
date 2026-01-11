@@ -25,17 +25,19 @@
 namespace local_backupftp\task;
 
 use backup;
+use core\task\scheduled_task;
 use Exception;
 use local_backupftp\server\ftp;
 use local_backupftp\util\category;
 use restore_controller;
+use restore_dbops;
 
 /**
  * Class restore_course
  *
  * @package local_backupftp\task
  */
-class restore_course extends \core\task\scheduled_task {
+class restore_course extends scheduled_task {
     /**
      * Function get_name
      *
@@ -58,12 +60,13 @@ class restore_course extends \core\task\scheduled_task {
         require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
         require_once("{$CFG->dirroot}/course/classes/category.php");
 
+        $cutoff = time() - 6 * 3600;
         $sql = "
             UPDATE {local_backupftp_restore}
                SET status = 'waiting'
              WHERE status = 'initiated'
-               AND timestart < (UNIX_TIMESTAMP() - 6 * 3600)";
-        $DB->execute($sql);
+               AND timestart < :cutoff";
+        $DB->execute($sql, ["cutoff" => $cutoff]);
 
         for ($i = 0; $i < $limit; $i++) {
             if ($DB->get_dbfamily() == "postgres") {
@@ -172,7 +175,7 @@ class restore_course extends \core\task\scheduled_task {
         }
 
         $packer = get_file_packer("application/vnd.moodle.backup");
-        $backuptmpdir = \restore_controller::get_tempdir_name(SITEID, get_admin()->id);
+        $backuptmpdir = restore_controller::get_tempdir_name(SITEID, get_admin()->id);
         $path = make_backup_temp_directory($backuptmpdir, true);
         if ($packer->extract_to_pathname($localfile, $path)) {
             $logs[] = get_string('mbz_extracted_successfully', 'local_backupftp');
@@ -196,7 +199,7 @@ class restore_course extends \core\task\scheduled_task {
                 ['course_url' => "{$CFG->wwwroot}/course/view.php?id={$course->id}"]);
             return $logs;
         }
-        $courseid = \restore_dbops::create_new_course("", "", $categoria);
+        $courseid = restore_dbops::create_new_course("", "", $categoria);
         $logs[] = get_string('access_course', 'local_backupftp',
             ['course_url' => "{$CFG->wwwroot}/course/view.php?id={$courseid}"]);
 

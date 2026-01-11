@@ -22,6 +22,8 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use local_backupftp\report\restore_view;
+
 require_once('../../config.php');
 require_once($CFG->libdir . '/tablelib.php');
 require_once(__DIR__ . "/classes/report/restore_view.php");
@@ -35,7 +37,7 @@ $PAGE->set_heading(get_string('restore_report', 'local_backupftp'));
 require_login();
 require_capability("local/backupftp:manage", context_system::instance());
 
-$table = new \local_backupftp\report\restore_view("backup_report");
+$table = new restore_view("backup_report");
 
 if (!$table->is_downloading()) {
     echo $OUTPUT->header();

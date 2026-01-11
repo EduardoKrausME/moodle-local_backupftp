@@ -21,9 +21,17 @@
     {}
 }}
 
-<form method="post">
-    <h2>{{#str}}ftp_files, local_backupftp{{/str}}</h2>
+<form method="post" action="{{actionurl}}">
+    <input type="hidden" name="sesskey" value="{{sesskey}}">
+
+    <h2>{{#str}}settings_ftp, local_backupftp{{/str}}</h2>
     {{{list_files_ftp}}}
+
+    <hr>
+
+    <h2>{{#str}}settings_local, local_backupftp{{/str}}</h2>
     {{{list_files_local}}}
-    <input type="submit" value="{{#str}}send, local_backupftp{{/str}}">
+
+    <br>
+    <input class="btn btn-primary" type="submit" value="{{#str}}submit, local_backupftp{{/str}}">
 </form>

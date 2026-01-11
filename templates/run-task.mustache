@@ -21,32 +21,16 @@
     {}
 }}
 
-<h3>{{#str}}runtask_execute_one_course, local_backupftp{{/str}}</h3>
-<p>
-    {{#str}}runtask_backup, local_backupftp{{/str}}
-    <a href="?action=backup&nun=1">{{#str}}runtask_click_here, local_backupftp{{/str}}</a>
-</p>
-<p>
-    {{#str}}runtask_restore, local_backupftp{{/str}}
-    <a href="?action=restore&nun=1">{{#str}}runtask_click_here, local_backupftp{{/str}}</a>
-</p>
+<div class="alert alert-info">
+    <h3>{{#str}}run_cron, local_backupftp{{/str}}</h3>
 
-<h3>{{#str}}runtask_execute_five_courses, local_backupftp{{/str}}</h3>
-<p>
-    {{#str}}runtask_backup, local_backupftp{{/str}}
-    <a href="?action=backup&nun=5">{{#str}}runtask_click_here, local_backupftp{{/str}}</a>
-</p>
-<p>
-    {{#str}}runtask_restore, local_backupftp{{/str}}
-    <a href="?action=restore&nun=5">{{#str}}runtask_click_here, local_backupftp{{/str}}</a>
-</p>
+    <p>{{#str}}runtask_backup, local_backupftp{{/str}}</p>
+    <a href="{{backup5url}}">{{#str}}runtask_execute_five_courses, local_backupftp{{/str}}</a><br>
+    <a href="{{backup10url}}">{{#str}}runtask_execute_ten_courses, local_backupftp{{/str}}</a>
 
-<h3>{{#str}}runtask_execute_ten_courses, local_backupftp{{/str}}</h3>
-<p>
-    {{#str}}runtask_backup, local_backupftp{{/str}}
-    <a href="?action=backup&nun=10">{{#str}}runtask_click_here, local_backupftp{{/str}}</a>
-</p>
-<p>
-    {{#str}}runtask_restore, local_backupftp{{/str}}
-    <a href="?action=restore&nun=10">{{#str}}runtask_click_here, local_backupftp{{/str}}</a>
-</p>
+    <hr>
+
+    <p>{{#str}}runtask_restore, local_backupftp{{/str}}</p>
+    <a href="{{restore5url}}">{{#str}}runtask_execute_five_courses, local_backupftp{{/str}}</a><br>
+    <a href="{{restore10url}}">{{#str}}runtask_execute_ten_courses, local_backupftp{{/str}}</a>
+</div>
