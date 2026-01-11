@@ -36,7 +36,7 @@ class ftp {
      *
      * @var resource|null
      */
-    public $conn_id = null;
+    public $connid = null;
 
     /**
      * Connect to FTP/FTPS using plugin config.
@@ -73,26 +73,26 @@ class ftp {
         $useftps = $parsed['ftps'];
 
         if ($useftps && function_exists('ftp_ssl_connect')) {
-            $this->conn_id = @ftp_ssl_connect($host, $port);
+            $this->connid = @ftp_ssl_connect($host, $port);
         } else {
-            $this->conn_id = @ftp_connect($host, $port);
+            $this->connid = @ftp_connect($host, $port);
         }
 
-        if (empty($this->conn_id)) {
+        if (empty($this->connid)) {
             $logs[] = get_string('ftp_error_connecting', 
             'local_backupftp');
             return $logs;
         }
 
-        if (!@ftp_login($this->conn_id, $ftpusername, $ftppassword)) {
+        if (!@ftp_login($this->connid, $ftpusername, $ftppassword)) {
             $logs[] = get_string('ftp_error_login', 
             'local_backupftp', ['username' => $ftpusername, 'url' => $ftpurl]);
-            $this->conn_id = null;
+            $this->connid = null;
             return $logs;
         }
 
         if ($ftppasv) {
-            @ftp_pasv($this->conn_id, true);
+            @ftp_pasv($this->connid, true);
         }
 
         return $logs;
@@ -102,10 +102,10 @@ class ftp {
      * Close connection.
      */
     public function close(): void {
-        if (!empty($this->conn_id)) {
-            @ftp_close($this->conn_id);
+        if (!empty($this->connid)) {
+            @ftp_close($this->connid);
         }
-        $this->conn_id = null;
+        $this->connid = null;
     }
 
     /**
