@@ -255,7 +255,7 @@ class backup_view extends table_sql {
      * @throws Exception
      */
     private function get_local_download_url_from_logs(string $logs): ?moodle_url {
-        $localfileenable =  get_config('local_backupftp', 'localfileenable');
+        $localfileenable = get_config('local_backupftp', 'localfileenable');
         if (!$localfileenable) {
             return null;
         }
