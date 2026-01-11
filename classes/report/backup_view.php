@@ -137,7 +137,7 @@ class backup_view extends table_sql {
 
     /**
      * col_timecreated
-     * 
+     *
      * @param stdClass $row
      * @return string
      * @throws Exception
@@ -151,7 +151,7 @@ class backup_view extends table_sql {
 
     /**
      * col_timestart
-     * 
+     *
      * @param stdClass $row
      * @return string
      * @throws Exception
@@ -165,7 +165,7 @@ class backup_view extends table_sql {
 
     /**
      * col_timeend
-     * 
+     *
      * @param stdClass $row
      * @return string
      * @throws Exception
@@ -278,7 +278,7 @@ class backup_view extends table_sql {
         $root = localfilepath::get_path();
         $root = str_replace('/', '\/', $root);
         preg_match('/' . $root . '\/(.*?\.mbz)/', $logs, $outputarray);
-        if(isset($outputarray[1])){
+        if (isset($outputarray[1])) {
             return new moodle_url('/local/backupftp/download.php', [
                 'f' => $outputarray[1],
                 'sesskey' => sesskey(),
