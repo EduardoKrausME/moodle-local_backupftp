@@ -272,8 +272,7 @@ class ftp {
         $string = strtr($string, $map);
 
         // Keep only safe characters.
-        $string = preg_replace('/[^A-Za-z0-9\-_\. ]/',
-            '', $string);
+        $string = preg_replace('/[^A-Za-z0-9\-_\. ]/', '', $string);
         $string = trim($string);
 
         return $string;
