@@ -262,10 +262,10 @@ class backup_view extends table_sql {
 
         $root = localfilepath::get_path();
         $root = str_replace('/', '\/', $root);
-        preg_match('/' . $root . '\/(.*?\.mbz)/', $logs, $output_array);
-        if(isset($output_array[1])){
+        preg_match('/' . $root . '\/(.*?\.mbz)/', $logs, $outputarray);
+        if(isset($outputarray[1])){
             return new moodle_url('/local/backupftp/download.php', [
-                'f' => $output_array[1],
+                'f' => $outputarray[1],
                 'sesskey' => sesskey(),
             ]);
         }
