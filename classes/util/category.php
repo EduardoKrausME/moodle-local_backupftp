@@ -67,7 +67,8 @@ class category {
                 $categoriaid = (int)$record->id;
 
                 $url = new moodle_url('/course/management.php', ['categoryid' => $categoriaid]);
-                $returnlink .= ' / <a href="' . s($url->out(false)) . '" target="_blank" rel="noopener noreferrer">' . s($segment) . '</a>';
+                $returnlink .= ' / <a href="' . s($url->out(false)) .
+                    '" target="_blank" rel="noopener noreferrer">' . s($segment) . '</a>';
             } else {
                 $categoriaid = -1;
                 $returnlink .= ' / <span style="color:#E91E63;">' . s($segment) . '</span>';
