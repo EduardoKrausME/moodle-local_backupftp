@@ -25,8 +25,6 @@
 namespace local_backupftp\report;
 
 use context_system;
-use core\exception\moodle_exception;
-use core_text;
 use Exception;
 use html_writer;
 use local_backupftp\localfilepath;
@@ -38,8 +36,18 @@ defined('MOODLE_INTERNAL') || die;
 
 require_once($CFG->libdir . '/tablelib.php');
 
+/**
+ * backup_view
+ */
 class backup_view extends table_sql {
 
+    /**
+     * Create a new instance of the sql_table.
+     *
+     * @param string $uniqueid a string identifying this table.Used as a key in
+     *                          session  vars.
+     * @throws Exception
+     */
     public function __construct(string $uniqueid) {
         parent::__construct($uniqueid);
 
@@ -77,6 +85,13 @@ class backup_view extends table_sql {
         $this->define_headers($headers);
     }
 
+    /**
+     * col_course
+     *
+     * @param stdClass $row
+     * @return string
+     * @throws Exception
+     */
     public function col_course(stdClass $row): string {
         $name = '--';
         if (!empty($row->course)) {
@@ -114,7 +129,7 @@ class backup_view extends table_sql {
 
         $url = $this->get_local_download_url_from_logs($logs);
         if ($url) {
-            $out .= '<br>' . html_writer::link($url, get_string('download'), ['class'=>'btn btn-primary']);
+            $out .= '<br>' . html_writer::link($url, get_string('download'), ['class' => 'btn btn-primary']);
         }
 
         return $out;
