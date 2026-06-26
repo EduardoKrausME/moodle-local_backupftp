@@ -39,6 +39,13 @@ class ftp {
     public $connid = null;
 
     /**
+     * Backward-compatible alias used by older plugin code.
+     *
+     * @var resource|null
+     */
+    public $conn_id = null;
+
+    /**
      * Connect to FTP/FTPS using plugin config.
      *
      * @param array $logs Logs.
@@ -74,8 +81,10 @@ class ftp {
 
         if ($useftps && function_exists('ftp_ssl_connect')) {
             $this->connid = @ftp_ssl_connect($host, $port);
+            $this->conn_id = $this->connid;
         } else {
             $this->connid = @ftp_connect($host, $port);
+            $this->conn_id = $this->connid;
         }
 
         if (empty($this->connid)) {
@@ -88,6 +97,7 @@ class ftp {
             $logs[] = get_string('ftp_error_login',
             'local_backupftp', ['username' => $ftpusername, 'url' => $ftpurl]);
             $this->connid = null;
+            $this->conn_id = null;
             return $logs;
         }
 
@@ -106,6 +116,7 @@ class ftp {
             @ftp_close($this->connid);
         }
         $this->connid = null;
+        $this->conn_id = null;
     }
 
     /**

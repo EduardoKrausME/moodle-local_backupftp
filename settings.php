@@ -39,6 +39,14 @@ if ($hassiteconfig) {
             $CFG->wwwroot . '/local/backupftp/index.php'
         )
     );
+
+    $ADMIN->add('integracaoroot',
+        new admin_externalpage(
+            'local_backupftp_tokens',
+            get_string('transfer_tokens', 'local_backupftp'),
+            $CFG->wwwroot . '/local/backupftp/tokens.php'
+        )
+    );
 }
 
 if (!is_siteadmin()) {
@@ -110,6 +118,17 @@ $settings->add(new admin_setting_configtext('local_backupftp/ftppasta',
     get_string('settings_ftppasta', 'local_backupftp'),
     get_string('settings_ftppasta_desc', 'local_backupftp'),
     ''
+));
+
+$settings->add(new admin_setting_heading('local_backupftp/settings_transfer_api',
+    get_string('settings_transfer_api', 'local_backupftp'),
+    get_string('settings_transfer_api_desc', 'local_backupftp')
+));
+
+$settings->add(new admin_setting_configduration('local_backupftp/tokenduration',
+    get_string('settings_tokenduration', 'local_backupftp'),
+    get_string('settings_tokenduration_desc', 'local_backupftp'),
+    48 * HOURSECS
 ));
 
 $settings->add(new admin_setting_heading('local_backupftp/heading2',

@@ -24,6 +24,7 @@
 
 use core\session\manager;
 use local_backupftp\localfilepath;
+use local_backupftp\token;
 
 require(__DIR__ . '/../../config.php');
 
@@ -34,9 +35,18 @@ $context = context_system::instance();
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/backupftp/download.php'));
 
-require_login();
-require_capability('local/backupftp:manage', $context);
-require_sesskey();
+// Download can be authorized in two ways:
+// 1) Logged in manager with sesskey (legacy/manual use).
+// 2) Valid transfer token, usually used by another Moodle instance.
+$tokenrecord = null;
+$requesttoken = token::get_request_token();
+if ($requesttoken !== '') {
+    $tokenrecord = token::require_valid_token(true);
+} else {
+    require_login();
+    require_capability('local/backupftp:manage', $context);
+    require_sesskey();
+}
 
 $rel = required_param('f', PARAM_RAW_TRIMMED);
 $rel = str_replace(chr(0), '', $rel);
@@ -88,6 +98,7 @@ $filesize = (int)filesize($fullreal);
 @header('Cache-Control: private, must-revalidate');
 @header('Pragma: public');
 @header('Expires: 0');
+@header('X-Local-BackupFTP-Token-Auth: ' . ($tokenrecord ? '1' : '0'));
 
 $fp = fopen($fullreal, 'rb');
 if ($fp === false) {

@@ -49,6 +49,16 @@ echo html_writer::tag('p',
     html_writer::link(new moodle_url('/local/backupftp/restore.php'), 'restore.php')
 );
 
+echo html_writer::tag('p',
+    get_string('transfer_tokens', 'local_backupftp') . ' ' .
+    html_writer::link(new moodle_url('/local/backupftp/tokens.php'), 'tokens.php')
+);
+
+echo html_writer::tag('p',
+    get_string('transfer_api', 'local_backupftp') . ' ' .
+    html_writer::link(new moodle_url('/local/backupftp/api.php'), 'api.php')
+);
+
 echo html_writer::tag('h2', get_string('reports', 'local_backupftp'));
 
 echo html_writer::tag('p',

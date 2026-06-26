@@ -15,20 +15,51 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Upgrade file
+ * Upgrade file.
  *
  * @package    local_backupftp
- * @copyright  2020 Eduardo Kraus {@link https://eduardokraus.com}
+ * @copyright  2026 Eduardo Kraus {@link https://eduardokraus.com}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die;
+
 /**
- * Function xmldb_local_backupftp_upgrade
+ * Upgrade local_backupftp database schema.
  *
- * @param $oldversion
- *
+ * @param int $oldversion Old plugin version.
  * @return bool
+ * @throws ddl_exception
+ * @throws downgrade_exception
+ * @throws upgrade_exception
  */
 function xmldb_local_backupftp_upgrade($oldversion) {
+    global $DB;
+
+    $dbman = $DB->get_manager();
+
+    if ($oldversion < 2026062600) {
+        $table = new xmldb_table('local_backupftp_token');
+
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+            $table->add_field('tokenhash', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('timeexpires', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('lastused', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('downloadcount', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('revoked', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_index('tokenhash_uix', XMLDB_INDEX_UNIQUE, ['tokenhash']);
+            $table->add_index('timeexpires_ix', XMLDB_INDEX_NOTUNIQUE, ['timeexpires']);
+
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2026062600, 'local', 'backupftp');
+    }
+
     return true;
 }
