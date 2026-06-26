@@ -142,23 +142,15 @@ foreach ($records as $record) {
     $table->data[] = [
         s($record->name),
         $status,
-        userdate((int)$record->timecreated, get_string('strftimedatetimeshort', 'langconfig')),
-        userdate((int)$record->timeexpires, get_string('strftimedatetimeshort', 'langconfig')),
-        $expired ? get_string('transfer_restore_token_expired', 'local_backupftp') : format_time((int)$record->timeexpires - time()),
-        empty($record->lastused) ? '-' : userdate((int)$record->lastused, get_string('strftimedatetimeshort', 'langconfig')),
-        (int)$record->downloadcount,
+        userdate($record->timecreated, get_string('strftimedatetimeshort', 'langconfig')),
+        userdate($record->timeexpires, get_string('strftimedatetimeshort', 'langconfig')),
+        $expired ? get_string('transfer_restore_token_expired', 'local_backupftp') : format_time($record->timeexpires - time()),
+        empty($record->lastused) ? '-' : userdate($record->lastused, get_string('strftimedatetimeshort', 'langconfig')),
+        $record->downloadcount,
         $actions,
     ];
 }
 
 echo html_writer::table($table);
-
-echo html_writer::tag('h3', get_string('transfer_api_examples', 'local_backupftp'));
-echo html_writer::tag('pre', s("GET /local/backupftp/api.php?action=courses&token=TOKEN\n" .
-    "GET /local/backupftp/api.php?action=course&id=2&token=TOKEN\n" .
-    "GET /local/backupftp/api.php?action=categories&token=TOKEN\n" .
-    "GET /local/backupftp/api.php?action=category&id=1&token=TOKEN\n" .
-    "GET /local/backupftp/api.php?action=backups&token=TOKEN\n" .
-    "GET /local/backupftp/download.php?f=RELATIVE/PATH/backup.mbz&token=TOKEN"));
 
 echo $OUTPUT->footer();

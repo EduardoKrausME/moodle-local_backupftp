@@ -23,6 +23,7 @@
  */
 
 require(__DIR__ . '/../../config.php');
+require_once($CFG->dirroot . '/local/backupftp/lib.php');
 
 global $PAGE, $OUTPUT;
 
@@ -38,37 +39,5 @@ require_login();
 require_capability('local/backupftp:manage', $context);
 
 echo $OUTPUT->header();
-
-echo html_writer::tag('p',
-    get_string('add_backup', 'local_backupftp') . ' ' .
-    html_writer::link(new moodle_url('/local/backupftp/backup.php'), 'backup.php')
-);
-
-echo html_writer::tag('p',
-    get_string('add_restore', 'local_backupftp') . ' ' .
-    html_writer::link(new moodle_url('/local/backupftp/restore.php'), 'restore.php')
-);
-
-echo html_writer::tag('p',
-    get_string('transfer_tokens', 'local_backupftp') . ' ' .
-    html_writer::link(new moodle_url('/local/backupftp/tokens.php'), 'tokens.php')
-);
-
-echo html_writer::tag('p',
-    get_string('transfer_api', 'local_backupftp') . ' ' .
-    html_writer::link(new moodle_url('/local/backupftp/api.php'), 'api.php')
-);
-
-echo html_writer::tag('h2', get_string('reports', 'local_backupftp'));
-
-echo html_writer::tag('p',
-    get_string('view_backup_report', 'local_backupftp') . ' ' .
-    html_writer::link(new moodle_url('/local/backupftp/report-backup.php'), 'report-backup.php')
-);
-
-echo html_writer::tag('p',
-    get_string('view_restore_report', 'local_backupftp') . ' ' .
-    html_writer::link(new moodle_url('/local/backupftp/report-restore.php'), 'report-restore.php')
-);
-
+echo $OUTPUT->render_from_template('local_backupftp/index', local_backupftp_get_index_context());
 echo $OUTPUT->footer();

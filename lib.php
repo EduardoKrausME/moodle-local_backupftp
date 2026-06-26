@@ -69,3 +69,18 @@ function local_backupftp_extend_navigation_course($navigation, $course, $context
             null, null, new pix_icon("i/report", ""));
     }
 }
+
+/**
+ * Returns the index page links context.
+ *
+ * @return array
+ */
+function local_backupftp_get_index_context() {
+    return [
+        'backupurl' => new moodle_url('/local/backupftp/backup.php'),
+        'restoreurl' => new moodle_url('/local/backupftp/restore.php'),
+        'tokensurl' => new moodle_url('/local/backupftp/tokens.php'),
+        'backupreporturl' => new moodle_url('/local/backupftp/report-backup.php'),
+        'restorereporturl' => new moodle_url('/local/backupftp/report-restore.php'),
+    ];
+}

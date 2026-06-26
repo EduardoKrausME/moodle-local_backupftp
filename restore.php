@@ -86,7 +86,7 @@ if (!empty($files)) {
             continue;
         }
 
-        $data = (object)[
+        $data = (object) [
             'remotefile' => $remotefile,
             'source' => 'configured',
             'sourcewwwroot' => '',
@@ -169,24 +169,26 @@ function local_backupftp_queue_remote_transfer_restore(): void {
                 continue;
             }
 
-            $relativepath = transfer_client::clean_backup_file((string)($file['relativepath'] ?? ''));
+            $relativepath = transfer_client::clean_backup_file((string) ($file['relativepath'] ?? ''));
             if ($relativepath === '') {
                 $ignored++;
                 continue;
             }
 
-            $filename = (string)($file['filename'] ?? basename($relativepath));
-            $filesize = (int)($file['size'] ?? 0);
-            $timemodified = (int)($file['timemodified'] ?? 0);
+            $filename = (string) ($file['filename'] ?? basename($relativepath));
+            $filesize = (int) ($file['size'] ?? 0);
+            $timemodified = (int) ($file['timemodified'] ?? 0);
 
-            $existing = $DB->get_record_select('local_backupftp_restore',
+            $existing = $DB->get_record_select(
+                'local_backupftp_restore',
                 'source = :source AND sourcewwwroot = :sourcewwwroot AND remotefile = :remotefile AND status <> :completed',
                 [
                     'source' => 'transfer',
                     'sourcewwwroot' => $remotewwwroot,
                     'remotefile' => $relativepath,
                     'completed' => 'completed',
-                ], '*', IGNORE_MULTIPLE);
+                ], '*', IGNORE_MULTIPLE
+            );
 
             if ($existing) {
                 $existing->sourceip = $remoteip;
@@ -194,7 +196,7 @@ function local_backupftp_queue_remote_transfer_restore(): void {
                 $existing->sourceexpires = $tokenexpires;
                 $existing->sourcefilesize = $filesize;
                 $existing->sourcetimemodified = $timemodified;
-                if ($existing->status === 'error' || (int)$existing->sourceexpires < time()) {
+                if ($existing->status === 'error' || (int) $existing->sourceexpires < time()) {
                     $existing->status = 'waiting';
                     $existing->logs = '';
                     $existing->timestart = 0;
@@ -203,7 +205,7 @@ function local_backupftp_queue_remote_transfer_restore(): void {
                 $DB->update_record('local_backupftp_restore', $existing);
                 $updated++;
             } else {
-                $data = (object)[
+                $data = (object) [
                     'remotefile' => $relativepath,
                     'source' => 'transfer',
                     'sourcewwwroot' => $remotewwwroot,
@@ -233,8 +235,10 @@ function local_backupftp_queue_remote_transfer_restore(): void {
 
         $html = html_writer::tag('p', $summary);
         if ($tokenexpires > 0) {
-            $html .= html_writer::tag('p', get_string('transfer_restore_token_counter', 'local_backupftp') . ' ' .
-                local_backupftp_render_countdown($tokenexpires));
+            $html .= html_writer::tag(
+                'p', get_string('transfer_restore_token_counter', 'local_backupftp') . ' ' .
+                local_backupftp_render_countdown($tokenexpires)
+            );
         }
         $html .= local_backupftp_render_remote_files_table($rows);
 
@@ -271,7 +275,9 @@ function local_backupftp_render_remote_transfer_form(): string {
         'required' => 'required',
         'placeholder' => 'https://moodle-antigo.exemplo.com.br',
     ]);
-    $html .= html_writer::tag('small', get_string('transfer_restore_wwwroot_desc', 'local_backupftp'), ['class' => 'form-text text-muted']);
+    $html .= html_writer::tag(
+        'small', get_string('transfer_restore_wwwroot_desc', 'local_backupftp'), ['class' => 'form-text text-muted']
+    );
     $html .= html_writer::end_div();
 
     $html .= html_writer::start_div('form-group');
@@ -283,20 +289,24 @@ function local_backupftp_render_remote_transfer_form(): string {
         'class' => 'form-control',
         'placeholder' => '192.0.2.10',
     ]);
-    $html .= html_writer::tag('small', get_string('transfer_restore_ip_desc', 'local_backupftp'), ['class' => 'form-text text-muted']);
+    $html .= html_writer::tag(
+        'small', get_string('transfer_restore_ip_desc', 'local_backupftp'), ['class' => 'form-text text-muted']
+    );
     $html .= html_writer::end_div();
 
     $html .= html_writer::start_div('form-group');
     $html .= html_writer::tag('label', get_string('transfer_restore_token', 'local_backupftp'), ['for' => 'id_remotetoken']);
     $html .= html_writer::empty_tag('input', [
-        'type' => 'password',
+        'type' => 'text',
         'name' => 'remotetoken',
         'id' => 'id_remotetoken',
         'class' => 'form-control',
         'required' => 'required',
         'autocomplete' => 'off',
     ]);
-    $html .= html_writer::tag('small', get_string('transfer_restore_token_desc', 'local_backupftp'), ['class' => 'form-text text-muted']);
+    $html .= html_writer::tag(
+        'small', get_string('transfer_restore_token_desc', 'local_backupftp'), ['class' => 'form-text text-muted']
+    );
     $html .= html_writer::end_div();
 
     $html .= html_writer::empty_tag('input', [
@@ -355,7 +365,8 @@ function local_backupftp_render_countdown(int $timeexpires): string {
         'data-expires' => $timeexpires,
     ]);
 
-    $html .= html_writer::script("(function(){
+    $html .= html_writer::script(
+        "(function(){
         var el = document.getElementById('" . $id . "');
         if (!el) { return; }
         function pad(n){ return n < 10 ? '0' + n : '' + n; }
@@ -376,7 +387,8 @@ function local_backupftp_render_countdown(int $timeexpires): string {
         }
         tick();
         window.setInterval(tick, 1000);
-    })();");
+    })();"
+    );
 
     return $html;
 }
@@ -611,7 +623,11 @@ function local_backupftp_list_filesfromlocal(string $directory): string {
             'value' => $remotefile,
         ]);
 
-        if ($restore = $DB->get_record('local_backupftp_restore', ['remotefile' => $remotefile], '*', IGNORE_MULTIPLE)) {
+        $sql = "
+            SELECT * 
+              FROM {local_backupftp_restore}
+             WHERE remotefile = :remotefile";
+        if ($restore = $DB->get_record_sql($sql, ['remotefile' => $remotefile], IGNORE_MULTIPLE)) {
             $restoretext .= html_writer::empty_tag('br') . ' / ' .
                 html_writer::tag(
                     'span',

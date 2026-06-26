@@ -24,6 +24,10 @@
 
 defined('MOODLE_INTERNAL') || die;
 
+global $OUTPUT;
+
+require_once($CFG->dirroot . '/local/backupftp/lib.php');
+
 $settings = new admin_settingpage('local_backupftp', get_string('pluginname', 'local_backupftp'));
 $ADMIN->add('localplugins', $settings);
 
@@ -52,6 +56,11 @@ if ($hassiteconfig) {
 if (!is_siteadmin()) {
     return;
 }
+
+$settings->add(new admin_setting_heading('local_backupftp/indexlinks',
+    get_string('courses_and_categories', 'local_backupftp'),
+    $OUTPUT->render_from_template('local_backupftp/index', local_backupftp_get_index_context())
+));
 
 $settings->add(new admin_setting_heading('local_backupftp/heading1',
     get_string('settings_mbz_settings', 'local_backupftp'), ''));

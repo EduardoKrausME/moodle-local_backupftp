@@ -95,10 +95,10 @@ if ($action === 'backup' || $action === 'restore') {
 $base = new moodle_url('/local/backupftp/run-task.php', ['sesskey' => sesskey()]);
 
 echo $OUTPUT->render_from_template('local_backupftp/run-task', [
-    'backup5url' => (new moodle_url($base, ['action' => 'backup', 'nun' => 5]))->out(false),
-    'restore5url' => (new moodle_url($base, ['action' => 'restore', 'nun' => 5]))->out(false),
-    'backup10url' => (new moodle_url($base, ['action' => 'backup', 'nun' => 10]))->out(false),
-    'restore10url' => (new moodle_url($base, ['action' => 'restore', 'nun' => 10]))->out(false),
+    'backup5url' => new moodle_url($base, ['action' => 'backup', 'nun' => 5]),
+    'restore5url' => new moodle_url($base, ['action' => 'restore', 'nun' => 5]),
+    'backup10url' => new moodle_url($base, ['action' => 'backup', 'nun' => 10]),
+    'restore10url' => new moodle_url($base, ['action' => 'restore', 'nun' => 10]),
 ]);
 
 echo $OUTPUT->footer();

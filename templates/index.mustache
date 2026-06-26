@@ -1,0 +1,145 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_backupftp/index
+
+    Example context (json):
+    {
+        "backupurl": "https://moodle.local/local/backupftp/backup.php",
+        "restoreurl": "https://moodle.local/local/backupftp/restore.php",
+        "tokensurl": "https://moodle.local/local/backupftp/tokens.php",
+        "backupreporturl": "https://moodle.local/local/backupftp/report-backup.php",
+        "restorereporturl": "https://moodle.local/local/backupftp/report-restore.php"
+    }
+}}
+
+<div class="local-backupftp-index">
+    <div class="alert alert-info mb-4">
+        <h3 class="h5 mb-2">Transferência de cursos entre Moodles</h3>
+        <p class="mb-0">
+            Este plugin ajuda a migrar cursos de uma instalação Moodle para outra com mais segurança.
+            O Moodle antigo gera os backups e libera o acesso por um token temporário. O Moodle novo consulta
+            a API, lista os arquivos disponíveis e coloca os restores em fila para execução pelo cron.
+        </p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="h5">Backup dos cursos</h3>
+                    <p>
+                        Use esta área para selecionar cursos e categorias e colocar a geração dos backups na fila.
+                        Os arquivos gerados podem ser salvos localmente e/ou enviados para o FTP, conforme as
+                        configurações do plugin.
+                    </p>
+                    <p class="mb-0">
+                        <a class="btn btn-primary" href="{{backupurl}}">Abrir tela de backup</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="h5">Restore no Moodle novo</h3>
+                    <p>
+                        Use esta tela para importar backups de outro Moodle. Informe o <code>wwwroot</code> antigo,
+                        o token e, opcionalmente, o IP da máquina antiga quando o domínio já tiver sido migrado
+                        para o novo servidor.
+                    </p>
+                    <p>
+                        Depois da consulta, os arquivos remotos são colocados na fila de restauração. Assim, a
+                        migração pode continuar pelo cron sem depender da página aberta no navegador.
+                    </p>
+                    <p class="mb-0">
+                        <a class="btn btn-primary" href="{{restoreurl}}">Abrir tela de restore</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-12 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="h5">Tokens de transferência</h3>
+                    <p>
+                        Crie tokens temporários para permitir que outro Moodle consulte cursos, categorias,
+                        backups e baixe os arquivos <code>.mbz</code>. O token não substitui login administrativo:
+                        ele deve ser compartilhado apenas durante a janela de migração.
+                    </p>
+
+                    <div class="card-body">
+                        <h3 class="h5 mb-3">Fluxo recomendado</h3>
+                        <ol class="mb-0">
+                            <li>
+                                No <strong>Moodle antigo</strong>, gere ou atualize os backups dos cursos que serão
+                                transferidos.
+                            </li>
+                            <li>
+                                Ainda no Moodle antigo, crie um <strong>token de transferência</strong>. Ele libera a
+                                API e o
+                                download dos arquivos <code>.mbz</code> somente enquanto estiver válido.
+                            </li>
+                            <li>
+                                No <strong>Moodle novo</strong>, acesse a tela de restore, informe o
+                                <code>wwwroot</code> antigo,
+                                o token e, se necessário, o IP da máquina antiga.
+                            </li>
+                            <li>
+                                Confira a lista retornada pela API e envie os arquivos para a fila. O cron fará o
+                                download e
+                                restaurará os cursos em segundo plano.
+                            </li>
+                        </ol>
+                    </div>
+                    <p class="mb-0">
+                        <a class="btn btn-primary" href="{{tokensurl}}">Gerenciar tokens</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-warning mb-4">
+        <h3 class="h6 mb-2">Atenção ao tempo do token</h3>
+        <p class="mb-0">
+            O token possui validade limitada, configurada nesta página de administração. Antes de iniciar uma
+            migração grande, confirme se o cron do Moodle novo está ativo e se o tempo restante do token é suficiente
+            para baixar todos os backups necessários.
+        </p>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h3 class="h5 mb-3">Relatórios e acompanhamento</h3>
+            <p>
+                Use os relatórios para acompanhar o que já foi colocado na fila, o que está em processamento,
+                quais backups foram concluídos e quais restores precisam de atenção.
+            </p>
+            <div class="row">
+                <div class="col-md-6 mb-2">
+                    <a class="btn btn-outline-primary" href="{{backupreporturl}}">Ver relatório de backups</a>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <a class="btn btn-outline-primary" href="{{restorereporturl}}">Ver relatório de restores</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

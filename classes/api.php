@@ -262,7 +262,7 @@ class api {
             'enddate' => isset($record->enddate) ? (int)$record->enddate : null,
             'timecreated' => isset($record->timecreated) ? (int)$record->timecreated : null,
             'timemodified' => isset($record->timemodified) ? (int)$record->timemodified : null,
-            'url' => (new moodle_url('/course/view.php', ['id' => (int)$record->id]))->out(false),
+            'url' => new moodle_url('/course/view.php', ['id' => (int)$record->id]),
         ];
 
         if ($full) {
@@ -403,7 +403,7 @@ class api {
                 'fullpath' => $fullpath,
                 'size' => $fileinfo->getSize(),
                 'timemodified' => $fileinfo->getMTime(),
-                'downloadurl' => (new moodle_url('/local/backupftp/download.php', $params))->out(false),
+                'downloadurl' => new moodle_url('/local/backupftp/download.php', $params),
             ];
         }
 
