@@ -21,7 +21,14 @@
     {}
 }}
 
-<p>
-    {{{showinput}}}
-    {{filename}} - {{filesize}} - {{createdontime}}{{{restoretext}}}
-</p>
+<div class="local-backupftp-file-row">
+    <label class="local-backupftp-file-main">
+        {{{showinput}}}
+        <span class="local-backupftp-file-name">{{filename}}</span>
+    </label>
+
+    <div class="local-backupftp-file-meta">
+        <span>{{filesize}}</span><br>
+        <span>{{createdontime}}</span>{{{restoretext}}}
+    </div>
+</div>

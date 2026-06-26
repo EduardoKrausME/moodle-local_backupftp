@@ -33,6 +33,7 @@ $PAGE->set_url(new moodle_url('/local/backupftp/backup.php'));
 $PAGE->set_pagelayout('base');
 $PAGE->set_title(get_string('backup_courses_and_categories', 'local_backupftp'));
 $PAGE->set_heading(get_string('backup_courses_and_categories', 'local_backupftp'));
+$PAGE->requires->js_call_amd('local_backupftp/categoryselector', 'init');
 
 require_login();
 require_capability('local/backupftp:manage', $context);
@@ -76,36 +77,85 @@ if (!empty($categoryids)) {
                     'course_id' => $courseid,
                     'course_name' => $coursename,
                 ]),
-                ['style' => 'color:#2196F3;font-weight:bold;']
+                ['class' => 'alert alert-info']
             );
         }
     }
 }
 
 // Navigation.
-echo html_writer::tag('p',
-    get_string('view_backup_report', 'local_backupftp') . ' ' .
-    html_writer::link(new moodle_url('/local/backupftp/report-backup.php'), get_string('report', 'local_backupftp'))
-);
-echo html_writer::tag('p',
-    get_string('run_cron', 'local_backupftp') . ' ' .
-    html_writer::link(new moodle_url('/local/backupftp/run-task.php'), get_string('cron', 'local_backupftp'))
-);
+echo local_backupftp_render_action_cards();
 
 // Form.
 echo html_writer::start_tag('form', ['method' => 'post', 'action' => $PAGE->url->out(false)]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 echo html_writer::tag('h2', get_string('categories', 'local_backupftp'));
+echo html_writer::tag('p', get_string('backup_category_select_help', 'local_backupftp'), ['class' => 'text-muted']);
 
+echo html_writer::start_div('local-backupftp-tree', ['data-region' => 'local-backupftp-tree']);
+echo local_backupftp_render_tree_toolbar();
 echo local_backupftp_categorias(0);
+echo html_writer::end_div();
 
 echo html_writer::empty_tag('input', [
     'type' => 'submit',
+    'class' => 'btn btn-primary mt-3',
     'value' => get_string('submit', 'local_backupftp'),
 ]);
 echo html_writer::end_tag('form');
 
 echo $OUTPUT->footer();
+
+/**
+ * Render page action cards.
+ *
+ * @return string
+ */
+function local_backupftp_render_action_cards(): string {
+    $reporturl = new moodle_url('/local/backupftp/report-backup.php');
+    $taskurl = new moodle_url('/local/backupftp/run-task.php');
+
+    $html = html_writer::start_div('local-backupftp-page-links');
+
+    $html .= html_writer::start_div('local-backupftp-action-card');
+    $html .= html_writer::tag('h3', get_string('backup_report', 'local_backupftp'));
+    $html .= html_writer::tag('p', get_string('view_backup_report', 'local_backupftp'));
+    $html .= html_writer::link($reporturl, get_string('report', 'local_backupftp'), ['class' => 'btn btn-outline-primary btn-sm']);
+    $html .= html_writer::end_div();
+
+    $html .= html_writer::start_div('local-backupftp-action-card');
+    $html .= html_writer::tag('h3', get_string('manual_cron_title', 'local_backupftp'));
+    $html .= html_writer::tag('p', get_string('manual_cron_desc', 'local_backupftp'));
+    $html .= html_writer::link($taskurl, get_string('manual_cron_button', 'local_backupftp'), ['class' => 'btn btn-outline-secondary btn-sm']);
+    $html .= html_writer::end_div();
+
+    $html .= html_writer::end_div();
+
+    return $html;
+}
+
+
+/**
+ * Render select/deselect toolbar for the whole tree.
+ *
+ * @return string
+ */
+function local_backupftp_render_tree_toolbar(): string {
+    $html = html_writer::start_div('local-backupftp-tree-toolbar local-backupftp-tree-actions');
+    $html .= html_writer::tag('button', get_string('select_all', 'local_backupftp'), [
+        'type' => 'button',
+        'class' => 'btn btn-sm btn-outline-primary',
+        'data-action' => 'local-backupftp-select-all',
+    ]);
+    $html .= html_writer::tag('button', get_string('deselect_all', 'local_backupftp'), [
+        'type' => 'button',
+        'class' => 'btn btn-sm btn-outline-secondary',
+        'data-action' => 'local-backupftp-deselect-all',
+    ]);
+    $html .= html_writer::end_div();
+
+    return $html;
+}
 
 /**
  * Render nested category selector.
@@ -116,76 +166,104 @@ echo $OUTPUT->footer();
 function local_backupftp_categorias(int $parentid): string {
     global $DB;
 
-    $context = context_system::instance();
-
     $categories = $DB->get_records('course_categories', ['parent' => $parentid], 'sortorder', 'id,name,parent');
     if (!$categories) {
         return '';
     }
 
-    $unique = uniqid('lbfcat_');
-    $fieldsetid = 'id-' . $unique;
-
-    $out = html_writer::start_tag('fieldset', [
-        'id' => $fieldsetid,
-        'style' => 'border:1px solid #959595;padding:6px;padding-left:50px;margin:3px;',
-    ]);
-
-    $out .= html_writer::tag(
-        'span',
-        get_string('select_deselect_all', 'local_backupftp'),
-        [
-            'style' => 'float:right;color:#E91E63;',
-            'onclick' => "\$('#{$fieldsetid} input').click();",
-        ]
-    );
-
-    $countcat = 0;
-
+    $out = '';
     foreach ($categories as $category) {
-        $categoryid = $category->id;
-
-        $count = $DB->count_records('course', ['category' => $categoryid]);
-        $countcat += $count;
-
-        $statusrows = $DB->get_records_sql(
-            "SELECT status, COUNT(1) AS linhas
-               FROM {local_backupftp_course}
-              WHERE courseid IN (SELECT c.id FROM {course} c WHERE c.category = :category)
-           GROUP BY status
-           ORDER BY status",
-            ['category' => $categoryid]
-        );
-
-        $statusfolder = '';
-        foreach ($statusrows as $row) {
-            $statusfolder .= ' / ' .
-                html_writer::tag('strong', s($row->status) . ':') . ' ' .
-                $row->linhas;
-        }
-
-        $name = format_string($category->name, true, ['context' => $context]);
-
-        $checkbox = html_writer::empty_tag('input', [
-            'type' => 'checkbox',
-            'name' => "category[{$categoryid}]",
-            'value' => $categoryid,
-        ]);
-
-        $label = html_writer::tag('label', html_writer::tag('strong', s($name)));
-        $courseslabel = html_writer::tag('strong', get_string('courses', 'local_backupftp') . ':');
-
-        $out .= html_writer::tag('div', $checkbox . ' ' . $label . ' ' . $courseslabel . ' ' . $count . $statusfolder);
-
-        $out .= local_backupftp_categorias($categoryid);
+        $out .= local_backupftp_render_category_node($category);
     }
 
-    $out .= html_writer::tag(
-        'span',
-        get_string('total_in_category', 'local_backupftp', ['total' => $countcat]),
-        ['style' => 'color:#2196F3;']
+    return $out;
+}
+
+/**
+ * Render a single category node.
+ *
+ * @param stdClass $category Category record.
+ * @return string
+ */
+function local_backupftp_render_category_node(stdClass $category): string {
+    global $DB;
+
+    $context = context_system::instance();
+    $categoryid = (int)$category->id;
+    $unique = uniqid('lbfcat_');
+    $inputid = 'id-' . $unique;
+
+    $coursecount = $DB->count_records('course', ['category' => $categoryid]);
+    $statusrows = $DB->get_records_sql(
+        "SELECT status, COUNT(1) AS linhas
+           FROM {local_backupftp_course}
+          WHERE courseid IN (SELECT c.id FROM {course} c WHERE c.category = :category)
+       GROUP BY status
+       ORDER BY status",
+        ['category' => $categoryid]
     );
 
-    $out .= html_writer::end_tag('fieldset');
-    return $out;
+    $statushtml = '';
+    foreach ($statusrows as $row) {
+        $statushtml .= html_writer::tag(
+            'span',
+            s($row->status) . ': ' . (int)$row->linhas,
+            ['class' => 'badge badge-info']
+        );
+    }
+
+    $name = format_string($category->name, true, ['context' => $context]);
+    $children = local_backupftp_categorias($categoryid);
+
+    $checkbox = html_writer::empty_tag('input', [
+        'type' => 'checkbox',
+        'id' => $inputid,
+        'name' => "category[{$categoryid}]",
+        'value' => $categoryid,
+    ]);
+
+    $html = html_writer::start_div('local-backupftp-tree-node', ['data-region' => 'local-backupftp-node']);
+    $html .= html_writer::start_div('local-backupftp-tree-card');
+
+    $html .= html_writer::start_div('local-backupftp-tree-header');
+    $html .= html_writer::start_div('local-backupftp-tree-title');
+    $html .= $checkbox;
+    $html .= html_writer::tag('span', '▣', ['class' => 'local-backupftp-tree-icon', 'aria-hidden' => 'true']);
+    $html .= html_writer::start_div();
+    $html .= html_writer::tag('h4', html_writer::tag('label', s($name), ['for' => $inputid]));
+    $html .= html_writer::start_div('local-backupftp-tree-meta');
+    $html .= html_writer::tag('span', get_string('courses', 'local_backupftp') . ': ' . $coursecount, [
+        'class' => 'badge badge-secondary',
+    ]);
+    $html .= $statushtml;
+    $html .= html_writer::end_div();
+    $html .= html_writer::end_div();
+    $html .= html_writer::end_div();
+
+    $html .= html_writer::start_div('local-backupftp-tree-actions');
+    $html .= html_writer::tag('button', get_string('select_all', 'local_backupftp'), [
+        'type' => 'button',
+        'class' => 'btn btn-sm btn-outline-primary',
+        'data-action' => 'local-backupftp-select-all',
+    ]);
+    $html .= html_writer::tag('button', get_string('deselect_all', 'local_backupftp'), [
+        'type' => 'button',
+        'class' => 'btn btn-sm btn-outline-secondary',
+        'data-action' => 'local-backupftp-deselect-all',
+    ]);
+    $html .= html_writer::end_div();
+    $html .= html_writer::end_div();
+
+    if ($children !== '') {
+        $html .= html_writer::start_div('local-backupftp-tree-body');
+        $html .= html_writer::start_div('local-backupftp-tree-children');
+        $html .= $children;
+        $html .= html_writer::end_div();
+        $html .= html_writer::end_div();
+    }
+
+    $html .= html_writer::end_div();
+    $html .= html_writer::end_div();
+
+    return $html;
 }

@@ -41,8 +41,8 @@ $context = context_system::instance();
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/backupftp/run-task.php'));
 $PAGE->set_pagelayout('base');
-$PAGE->set_title(get_string('restore_report', 'local_backupftp'));
-$PAGE->set_heading(get_string('restore_report', 'local_backupftp'));
+$PAGE->set_title(get_string('manual_cron_title', 'local_backupftp'));
+$PAGE->set_heading(get_string('manual_cron_title', 'local_backupftp'));
 
 require_login();
 require_capability('local/backupftp:manage', $context);

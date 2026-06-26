@@ -20,21 +20,35 @@
     Example context (json):
     {
         "unique": "Aa123",
-        "infocategori_link": "title"
+        "infocategori_link": "title",
+        "data": "rows"
     }
 }}
 
-<fieldset id="id-{{unique}}"
-          style="border:1px solid #959595;padding:6px;padding-left:50px;margin:3px;">
+<div id="id-{{unique}}" class="local-backupftp-tree-node" data-region="local-backupftp-node">
+    <div class="local-backupftp-tree-card">
+        <div class="local-backupftp-tree-header">
+            <div class="local-backupftp-tree-title">
+                <span class="local-backupftp-tree-icon" aria-hidden="true">▣</span>
+                <h5>{{{infocategori_link}}}</h5>
+            </div>
 
-    <span style="float:right;color:#E91E63;"
-          onclick="document.querySelectorAll('#id-{{unique}} input').forEach((e) => e.click());">
-        {{#str}}select_deselect_all, local_backupftp{{/str}}
-    </span>
+            <div class="local-backupftp-tree-actions">
+                <button type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        data-action="local-backupftp-select-all">
+                    {{#str}}select_all, local_backupftp{{/str}}
+                </button>
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        data-action="local-backupftp-deselect-all">
+                    {{#str}}deselect_all, local_backupftp{{/str}}
+                </button>
+            </div>
+        </div>
 
-    <h5>
-        {{{infocategori_link}}}
-    </h5>
-
-    {{{data}}}
-</fieldset>
+        <div class="local-backupftp-tree-body">
+            {{{data}}}
+        </div>
+    </div>
+</div>

@@ -21,13 +21,20 @@
     {}
 }}
 
-<p>
-    {{#str}}view_restore_report, local_backupftp{{/str}}
-    <a href="report-restore.php">{{#str}}report, local_backupftp{{/str}}</a>
-</p>
+<div class="local-backupftp-page-links">
+    <div class="local-backupftp-action-card">
+        <h3>{{#str}}restore_report, local_backupftp{{/str}}</h3>
+        <p>{{#str}}view_restore_report, local_backupftp{{/str}}</p>
+        <a class="btn btn-outline-primary btn-sm" href="report-restore.php">
+            {{#str}}report, local_backupftp{{/str}}
+        </a>
+    </div>
 
-<p>
-    {{#str}}run_cron, local_backupftp{{/str}}
-    <a href="run-task.php">{{#str}}cron_task, local_backupftp{{/str}}</a>
-</p>
-
+    <div class="local-backupftp-action-card">
+        <h3>{{#str}}manual_cron_title, local_backupftp{{/str}}</h3>
+        <p>{{#str}}manual_cron_desc, local_backupftp{{/str}}</p>
+        <a class="btn btn-outline-secondary btn-sm" href="run-task.php">
+            {{#str}}manual_cron_button, local_backupftp{{/str}}
+        </a>
+    </div>
+</div>

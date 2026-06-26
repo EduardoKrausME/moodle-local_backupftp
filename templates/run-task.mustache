@@ -22,15 +22,39 @@
 }}
 
 <div class="alert alert-info">
-    <h3>{{#str}}run_cron, local_backupftp{{/str}}</h3>
+    <h3>{{#str}}manual_cron_title, local_backupftp{{/str}}</h3>
+    <p>{{#str}}runtask_manual_desc, local_backupftp{{/str}}</p>
+    <p class="mb-0"><strong>{{#str}}runtask_manual_note_title, local_backupftp{{/str}}</strong> {{#str}}runtask_manual_note, local_backupftp{{/str}}</p>
+</div>
 
-    <p>{{#str}}runtask_backup, local_backupftp{{/str}}</p>
-    <a href="{{backup5url}}">{{#str}}runtask_execute_five_courses, local_backupftp{{/str}}</a><br>
-    <a href="{{backup10url}}">{{#str}}runtask_execute_ten_courses, local_backupftp{{/str}}</a>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h4 class="h5">{{#str}}runtask_backup_title, local_backupftp{{/str}}</h4>
+                <p>{{#str}}runtask_backup_desc, local_backupftp{{/str}}</p>
+                <a class="btn btn-outline-primary btn-sm" href="{{backup5url}}">
+                    {{#str}}runtask_execute_five_courses, local_backupftp{{/str}}
+                </a>
+                <a class="btn btn-outline-primary btn-sm" href="{{backup10url}}">
+                    {{#str}}runtask_execute_ten_courses, local_backupftp{{/str}}
+                </a>
+            </div>
+        </div>
+    </div>
 
-    <hr>
-
-    <p>{{#str}}runtask_restore, local_backupftp{{/str}}</p>
-    <a href="{{restore5url}}">{{#str}}runtask_execute_five_courses, local_backupftp{{/str}}</a><br>
-    <a href="{{restore10url}}">{{#str}}runtask_execute_ten_courses, local_backupftp{{/str}}</a>
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h4 class="h5">{{#str}}runtask_restore_title, local_backupftp{{/str}}</h4>
+                <p>{{#str}}runtask_restore_desc, local_backupftp{{/str}}</p>
+                <a class="btn btn-outline-primary btn-sm" href="{{restore5url}}">
+                    {{#str}}runtask_execute_five_courses, local_backupftp{{/str}}
+                </a>
+                <a class="btn btn-outline-primary btn-sm" href="{{restore10url}}">
+                    {{#str}}runtask_execute_ten_courses, local_backupftp{{/str}}
+                </a>
+            </div>
+        </div>
+    </div>
 </div>

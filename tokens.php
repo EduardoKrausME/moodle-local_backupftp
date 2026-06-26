@@ -142,11 +142,11 @@ foreach ($records as $record) {
     $table->data[] = [
         s($record->name),
         $status,
-        userdate($record->timecreated, get_string('strftimedatetimeshort', 'langconfig')),
-        userdate($record->timeexpires, get_string('strftimedatetimeshort', 'langconfig')),
-        $expired ? get_string('transfer_restore_token_expired', 'local_backupftp') : format_time($record->timeexpires - time()),
-        empty($record->lastused) ? '-' : userdate($record->lastused, get_string('strftimedatetimeshort', 'langconfig')),
-        $record->downloadcount,
+        userdate((int)$record->timecreated, get_string('strftimedatetimeshort', 'langconfig')),
+        userdate((int)$record->timeexpires, get_string('strftimedatetimeshort', 'langconfig')),
+        $expired ? get_string('transfer_restore_token_expired', 'local_backupftp') : format_time((int)$record->timeexpires - time()),
+        empty($record->lastused) ? '-' : userdate((int)$record->lastused, get_string('strftimedatetimeshort', 'langconfig')),
+        (int)$record->downloadcount,
         $actions,
     ];
 }

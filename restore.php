@@ -42,6 +42,7 @@ $PAGE->set_url(new moodle_url('/local/backupftp/restore.php'));
 $PAGE->set_pagelayout('base');
 $PAGE->set_title(get_string('restore_courses_and_categories', 'local_backupftp'));
 $PAGE->set_heading(get_string('restore_courses_and_categories', 'local_backupftp'));
+$PAGE->requires->js_call_amd('local_backupftp/categoryselector', 'init');
 
 require_login();
 require_capability('local/backupftp:manage', $context);
@@ -501,6 +502,13 @@ function local_backupftp_list_filesfromftp(string $directory): string {
         return '';
     }
 
+    usort($files, function(array $a, array $b): int {
+        if ($a['type'] !== $b['type']) {
+            return $a['type'] === 'dir' ? -1 : 1;
+        }
+        return strnatcasecmp($a['name'], $b['name']);
+    });
+
     $unique = uniqid('lbf_');
     $categoria = str_replace($ftppasta, '', $directory);
     $infocategori = category::get_category($categoria);
@@ -550,6 +558,10 @@ function local_backupftp_list_filesfromftp(string $directory): string {
         ]);
     }
 
+    if ($internalreturn === '') {
+        return '';
+    }
+
     return $OUTPUT->render_from_template('local_backupftp/restore_fieldset', [
         'infocategori_link' => $infocategori['link'],
         'unique' => $unique,
@@ -589,6 +601,13 @@ function local_backupftp_list_filesfromlocal(string $directory): string {
     if (empty($files)) {
         return '';
     }
+
+    usort($files, function(array $a, array $b): int {
+        if ($a['type'] !== $b['type']) {
+            return $a['type'] === 'dir' ? -1 : 1;
+        }
+        return strnatcasecmp($a['name'], $b['name']);
+    });
 
     $unique = uniqid('lbf_');
     $categoria = str_replace($localfilepath, '', $directory);
@@ -650,6 +669,10 @@ function local_backupftp_list_filesfromlocal(string $directory): string {
             'createdontime' => $createdontime,
             'restoretext' => $restoretext,
         ]);
+    }
+
+    if ($internalreturn === '') {
+        return '';
     }
 
     return $OUTPUT->render_from_template('local_backupftp/restore_fieldset', [
