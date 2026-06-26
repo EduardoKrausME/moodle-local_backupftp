@@ -24,7 +24,6 @@
 
 namespace local_backupftp\util;
 
-use core\exception\moodle_exception;
 use core_course_category;
 use core_text;
 use Exception;
@@ -102,7 +101,25 @@ class category {
             return 0;
         }
 
-        $dirname = pathinfo($categoria, PATHINFO_DIRNAME);
+        return self::get_categoryid_from_backup_path($categoria, $logs);
+    }
+
+    /**
+     * Ensure category path exists from a backup path and return the final category id.
+     *
+     * The file name itself is ignored; only its directory is used. This is useful for
+     * remote Moodle transfers where the backup path is already relative to the old
+     * backup root, for example "Graduação/Odontologia/course.mbz".
+     *
+     * @param string $backuppath Backup path.
+     * @param array $logs Logs (by ref).
+     * @return int
+     * @throws Exception
+     */
+    public static function get_categoryid_from_backup_path(string $backuppath, array &$logs): int {
+        global $DB;
+
+        $dirname = pathinfo(str_replace('\\', '/', $backuppath), PATHINFO_DIRNAME);
         $segments = self::split_path($dirname);
 
         $categoriaid = (int)get_config('local_backupftp', 'categorystart');

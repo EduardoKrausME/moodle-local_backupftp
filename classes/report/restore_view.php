@@ -57,6 +57,9 @@ class restore_view extends table_sql {
 
         $columns = [
             'remotefile',
+            'source',
+            'sourcewwwroot',
+            'sourceexpires',
             'status',
             'logs',
             'timecreated',
@@ -66,6 +69,9 @@ class restore_view extends table_sql {
 
         $headers = [
             get_string('remote_file', 'local_backupftp'),
+            get_string('transfer_restore_source', 'local_backupftp'),
+            get_string('transfer_restore_wwwroot', 'local_backupftp'),
+            get_string('transfer_token_expires', 'local_backupftp'),
             get_string('status', 'local_backupftp'),
             get_string('logs', 'local_backupftp'),
             get_string('created_at', 'local_backupftp'),
@@ -75,6 +81,52 @@ class restore_view extends table_sql {
 
         $this->define_columns($columns);
         $this->define_headers($headers);
+    }
+
+
+    /**
+     * Source column.
+     *
+     * @param \stdClass $row Row.
+     * @return string
+     */
+    public function col_source(\stdClass $row): string {
+        return empty($row->source) ? 'configured' : s($row->source);
+    }
+
+    /**
+     * Source wwwroot column.
+     *
+     * @param \stdClass $row Row.
+     * @return string
+     */
+    public function col_sourcewwwroot(\stdClass $row): string {
+        if (empty($row->sourcewwwroot)) {
+            return '-';
+        }
+        return s($row->sourcewwwroot);
+    }
+
+    /**
+     * Source token expiry column.
+     *
+     * @param \stdClass $row Row.
+     * @return string
+     */
+    public function col_sourceexpires(\stdClass $row): string {
+        if (empty($row->sourceexpires)) {
+            return '-';
+        }
+
+        $expires = (int)$row->sourceexpires;
+        $text = userdate($expires, get_string('strftimedatetimeshort', 'langconfig'));
+        if ($expires > time()) {
+            $text .= ' (' . format_time($expires - time()) . ')';
+        } else {
+            $text .= ' (' . get_string('transfer_restore_token_expired', 'local_backupftp') . ')';
+        }
+
+        return s($text);
     }
 
     /**
@@ -144,6 +196,8 @@ class restore_view extends table_sql {
 
         $sortable = [
             'remotefile' => 'lbr.remotefile',
+            'source' => 'lbr.source',
+            'sourceexpires' => 'lbr.sourceexpires',
             'status' => 'lbr.status',
             'timecreated' => 'lbr.timecreated',
             'timestart' => 'lbr.timestart',

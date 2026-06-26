@@ -8,6 +8,7 @@ This is a Moodle plugin that facilitates the backup and restoration process of c
 - **Category organization:** Organizes backups on the FTP server by course categories, simplifying management.
 - **Course restoration:** Allows restoration of courses directly from backups stored on the FTP server.
 - **Flexible configuration:** The FTP server configuration can be easily set up in Moodle’s administration panel.
+- **Course transfer between Moodle accounts:** A new Moodle can connect to a previous Moodle using `wwwroot`, optional old server IP, and a temporary token, then queue all remote backups for restore.
 
 ## Installation
 
@@ -34,6 +35,13 @@ After installation, you can configure the FTP server to store the backups:
 ### Restoring Courses
 
 - To restore a course from the backup on the FTP, simply access the plugin's restoration tool and select the desired backup directly from the FTP server.
+
+### Restoring from another Moodle
+
+1. On the previous Moodle, create a transfer token in **Backup FTP/Local > Transfer tokens**.
+2. On the new Moodle, open **Backup FTP/Local > Restore**.
+3. Fill in the previous Moodle `wwwroot`, the old server IP if the domain was already migrated, and the token.
+4. The plugin calls the previous Moodle API, reads the backup list, shows the token validity countdown, and queues remote restores for the cron task.
 
 ## Contributions
 

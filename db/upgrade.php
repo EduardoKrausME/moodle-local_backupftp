@@ -61,5 +61,38 @@ function xmldb_local_backupftp_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026062600, 'local', 'backupftp');
     }
 
+
+    if ($oldversion < 2026062601) {
+        $table = new xmldb_table('local_backupftp_restore');
+
+        $fields = [
+            new xmldb_field('source', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'configured', 'remotefile'),
+            new xmldb_field('sourcewwwroot', XMLDB_TYPE_TEXT, null, null, null, null, null, 'source'),
+            new xmldb_field('sourceip', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'sourcewwwroot'),
+            new xmldb_field('sourcetoken', XMLDB_TYPE_TEXT, null, null, null, null, null, 'sourceip'),
+            new xmldb_field('sourceexpires', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'sourcetoken'),
+            new xmldb_field('sourcefilesize', XMLDB_TYPE_INTEGER, '20', null, XMLDB_NOTNULL, null, '0', 'sourceexpires'),
+            new xmldb_field('sourcetimemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'sourcefilesize'),
+        ];
+
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        $index = new xmldb_index('source_ix', XMLDB_INDEX_NOTUNIQUE, ['source']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        $index = new xmldb_index('sourceexpires_ix', XMLDB_INDEX_NOTUNIQUE, ['sourceexpires']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        upgrade_plugin_savepoint(true, 2026062601, 'local', 'backupftp');
+    }
+
     return true;
 }

@@ -111,10 +111,13 @@ function local_backupftp_api_response($data, ?stdClass $tokenrecord = null): voi
     ];
 
     if ($tokenrecord) {
+        $timeexpires = (int)$tokenrecord->timeexpires;
         $response['token'] = [
             'id' => (int)$tokenrecord->id,
             'name' => $tokenrecord->name,
-            'timeexpires' => (int)$tokenrecord->timeexpires,
+            'timeexpires' => $timeexpires,
+            'timeremaining' => max(0, $timeexpires - time()),
+            'timeremainingformatted' => format_time(max(0, $timeexpires - time())),
         ];
     }
 

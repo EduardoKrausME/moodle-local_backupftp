@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Restore course file
+ * Restore course file.
  *
  * @package   local_backupftp
  * @copyright 2025 Eduardo Kraus {@link https://eduardokraus.com}
@@ -28,29 +28,31 @@ use backup;
 use core\task\scheduled_task;
 use Exception;
 use local_backupftp\server\ftp;
+use local_backupftp\transfer_client;
 use local_backupftp\util\category;
 use restore_controller;
 use restore_dbops;
+use stdClass;
 
 /**
- * Class restore_course
+ * Class restore_course.
  *
  * @package local_backupftp\task
  */
 class restore_course extends scheduled_task {
     /**
-     * Function get_name
+     * Function get_name.
      *
      * @return string
      */
     public function get_name() {
-        return "Restore the scheduled ones that are on the FTP";
+        return 'Restore queued MBZ backups from FTP, local folder or another Moodle transfer API';
     }
 
     /**
-     * Function execute
+     * Function execute.
      *
-     * @param int $limit
+     * @param int $limit Number of restores to process.
      * @throws Exception
      */
     public function execute($limit = 30) {
@@ -66,10 +68,10 @@ class restore_course extends scheduled_task {
                SET status = 'waiting'
              WHERE status = 'initiated'
                AND timestart < :cutoff";
-        $DB->execute($sql, ["cutoff" => $cutoff]);
+        $DB->execute($sql, ['cutoff' => $cutoff]);
 
         for ($i = 0; $i < $limit; $i++) {
-            if ($DB->get_dbfamily() == "postgres") {
+            if ($DB->get_dbfamily() == 'postgres') {
                 $backupftprestore = $DB->get_record_sql("
                     SELECT * FROM {local_backupftp_restore}
                      WHERE status LIKE 'waiting'
@@ -87,41 +89,46 @@ class restore_course extends scheduled_task {
 
             if ($backupftprestore) {
                 $backupftprestore->timestart = time();
-                $backupftprestore->status = "initiated";
+                $backupftprestore->status = 'initiated';
                 $backupftprestore->timeend = 0;
-                $DB->update_record("local_backupftp_restore", $backupftprestore);
+                $DB->update_record('local_backupftp_restore', $backupftprestore);
 
+                $status = 'completed';
                 try {
-                    $logs = $this->execute_restore($backupftprestore->remotefile);
+                    $result = $this->execute_restore($backupftprestore);
+                    $logs = $result['logs'];
+                    $status = $result['status'];
                 } catch (Exception $e) {
-                    $logs = ["Exception: <b>{$e->getMessage()}</b>"];
+                    $logs = ['Exception: <b>' . $e->getMessage() . '</b>'];
+                    $status = 'error';
                 }
                 $logs = implode("\n", $logs);
 
                 $backupftprestore->logs = $logs;
                 $backupftprestore->timeend = time();
-                $backupftprestore->status = "completed";
-                $DB->update_record("local_backupftp_restore", $backupftprestore);
+                $backupftprestore->status = $status;
+                $DB->update_record('local_backupftp_restore', $backupftprestore);
 
                 mtrace($logs);
             } else {
-                mtrace(get_string("nothing_to_execute", "local_backupftp"));
+                mtrace(get_string('nothing_to_execute', 'local_backupftp'));
             }
         }
     }
 
     /**
-     * Function execute_restore
+     * Execute a restore row.
      *
-     * @param $remotefile
-     * @return array
+     * @param stdClass|string $restore Restore record or legacy remote file string.
+     * @return array{status:string,logs:array}
      * @throws Exception
      */
-    private function execute_restore($remotefile) {
+    private function execute_restore($restore): array {
         global $CFG, $DB;
 
-        $localfileenable = get_config("local_backupftp", "localfileenable");
-        $ftpenable = get_config("local_backupftp", "ftpenable");
+        $record = is_object($restore) ? $restore : (object)['remotefile' => $restore, 'source' => 'configured'];
+        $source = empty($record->source) ? 'configured' : $record->source;
+        $remotefile = (string)$record->remotefile;
 
         mtrace("File is {$remotefile}");
         $logs = ["File is {$remotefile}"];
@@ -129,77 +136,67 @@ class restore_course extends scheduled_task {
         $extension = pathinfo($remotefile, PATHINFO_EXTENSION);
         $filename = pathinfo($remotefile, PATHINFO_FILENAME);
 
-        if ($extension != "mbz") {
-            $logs[] = "File is not MBZ";
-            return $logs;
+        if (\core_text::strtolower($extension) !== 'mbz') {
+            $logs[] = 'File is not MBZ';
+            return ['status' => 'error', 'logs' => $logs];
         }
 
-        $localfile = make_temp_directory("local_backupftp") . "/backup-" . uniqid() . ".mbz";
-        $fileresource = fopen($localfile, "w");
+        $localfile = make_temp_directory('local_backupftp') . '/backup-' . uniqid('', true) . '.mbz';
+        $size = 0;
 
-        if ($ftpenable) {
-            $ftp = new ftp();
-            $logs = $ftp->connect($logs);
-
-            $size = ftp_size($ftp->conn_id, $remotefile);
-            $size = preg_replace('/[^0-9]/', "", $size);
-            if (ftp::format_bytes($size) < 10) {
-                $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
-                return $logs;
+        if ($source === 'transfer') {
+            $result = $this->download_transfer_file($record, $localfile, $logs);
+            if ($result['status'] !== 'completed') {
+                return ['status' => $result['status'], 'logs' => $logs];
             }
-        } else if ($localfileenable) {
-            $size = filesize($remotefile);
-            if ($size < 10) {
-                $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
-                return $logs;
-            }
+            $size = $result['size'];
         } else {
-            $logs[] = "plugin Disable";
-            return $logs;
-        }
-
-        $logs[] = get_string('processing_file', 'local_backupftp',
-            ['remote_file' => $remotefile, 'size' => ftp::format_bytes($size)]);
-
-        if ($ftpenable) {
-            $logs = $ftp->connect($logs);
-            if (ftp_fget($ftp->conn_id, $fileresource, $remotefile, FTP_BINARY)) {
-                $logs[] = get_string('file_found_and_downloaded', 'local_backupftp');
-            } else {
-                $logs[] = get_string('error_downloading_file', 'local_backupftp', ['error' => error_get_last()]);
-                return $logs;
+            $result = $this->copy_configured_source_file($remotefile, $localfile, $logs);
+            if ($result['status'] !== 'completed') {
+                return ['status' => $result['status'], 'logs' => $logs];
             }
-        } else if ($localfileenable) {
-            copy($remotefile, $localfile);
-            mtrace(" Size: " . filesize($localfile));
+            $size = $result['size'];
         }
 
-        $packer = get_file_packer("application/vnd.moodle.backup");
+        $logs[] = get_string('processing_file', 'local_backupftp', [
+            'remote_file' => $remotefile,
+            'size' => ftp::format_bytes($size),
+        ]);
+
+        $packer = get_file_packer('application/vnd.moodle.backup');
         $backuptmpdir = restore_controller::get_tempdir_name(SITEID, get_admin()->id);
         $path = make_backup_temp_directory($backuptmpdir, true);
         if ($packer->extract_to_pathname($localfile, $path)) {
             $logs[] = get_string('mbz_extracted_successfully', 'local_backupftp');
             $logs[] = $path;
         } else {
+            @unlink($localfile);
             $logs[] = get_string('error_extracting_mbz', 'local_backupftp');
-            return $logs;
+            return ['status' => 'error', 'logs' => $logs];
         }
 
         $transaction = $DB->start_delegated_transaction();
 
         $userdoingrestore = get_admin()->id;
 
-        $categoria = category::get_categoryid($remotefile, $logs);
+        if ($source === 'transfer') {
+            $categoria = category::get_categoryid_from_backup_path($remotefile, $logs);
+        } else {
+            $categoria = category::get_categoryid($remotefile, $logs);
+        }
         $logs[] = get_string('adding_to_category', 'local_backupftp', ['categoria' => $categoria]);
 
-        $course = $DB->get_record_sql("SELECT id FROM {course} WHERE fullname = :fullname AND category = :category",
-            ["fullname" => $filename, "category" => $categoria]);
+        $course = $DB->get_record_sql('SELECT id FROM {course} WHERE fullname = :fullname AND category = :category',
+            ['fullname' => $filename, 'category' => $categoria]);
         if ($course) {
+            $transaction->allow_commit();
+            @unlink($localfile);
             $logs[] = get_string('restore_course_already_exists', 'local_backupftp',
                 ['course_url' => "{$CFG->wwwroot}/course/view.php?id={$course->id}"]);
-            return $logs;
+            return ['status' => 'completed', 'logs' => $logs];
         }
-        $courseid = restore_dbops::create_new_course("", "", $categoria);
+
+        $courseid = restore_dbops::create_new_course('', '', $categoria);
         $logs[] = get_string('access_course', 'local_backupftp',
             ['course_url' => "{$CFG->wwwroot}/course/view.php?id={$courseid}"]);
 
@@ -210,31 +207,120 @@ class restore_course extends scheduled_task {
         try {
             if ($controller->execute_precheck()) {
                 $controller->execute_plan();
+                $transaction->allow_commit();
             } else {
-                try {
-                    $transaction->rollback(new Exception("..."));
-                } catch (Exception $e) {
-                    unset($transaction);
-                    $controller->destroy();
-                    unset($controller);
-                    unlink($localfile);
-
-                    $logs[] = get_string('pre_check_failure', 'local_backupftp');
-                    return $logs;
-                }
+                throw new Exception('Restore precheck failed');
             }
         } catch (Exception $e) {
-            $logs[] = get_string('pre_check_failure', 'local_backupftp');
-            return $logs;
+            try {
+                $transaction->rollback($e);
+            } catch (Exception $rollbackexception) {
+                // Keep original error in the logs below.
+            }
+            $controller->destroy();
+            @unlink($localfile);
+
+            $logs[] = get_string('pre_check_failure', 'local_backupftp') . ': ' . $e->getMessage();
+            return ['status' => 'error', 'logs' => $logs];
         }
 
-        unset($transaction);
         $controller->destroy();
-        unset($controller);
-        unlink($localfile);
+        @unlink($localfile);
 
         $logs[] = get_string('temporary_files_deleted', 'local_backupftp');
 
-        return $logs;
+        return ['status' => 'completed', 'logs' => $logs];
+    }
+
+    /**
+     * Download a file from another Moodle transfer API.
+     *
+     * @param stdClass $record Restore row.
+     * @param string $localfile Local target path.
+     * @param array $logs Logs by reference.
+     * @return array{status:string,size:int}
+     * @throws Exception
+     */
+    private function download_transfer_file(stdClass $record, string $localfile, array &$logs): array {
+        $wwwroot = trim((string)($record->sourcewwwroot ?? ''));
+        $ip = trim((string)($record->sourceip ?? ''));
+        $token = trim((string)($record->sourcetoken ?? ''));
+        $expires = (int)($record->sourceexpires ?? 0);
+
+        if ($expires > 0) {
+            $remaining = $expires - time();
+            if ($remaining <= 0) {
+                $logs[] = get_string('transfer_restore_token_expired_before_restore', 'local_backupftp');
+                return ['status' => 'error', 'size' => 0];
+            }
+            $logs[] = get_string('transfer_restore_token_remaining_log', 'local_backupftp', format_time($remaining));
+        }
+
+        if ($wwwroot === '' || $token === '') {
+            $logs[] = get_string('transfer_restore_missing_remote_data', 'local_backupftp');
+            return ['status' => 'error', 'size' => 0];
+        }
+
+        $size = transfer_client::download_backup($wwwroot, $ip, $token, (string)$record->remotefile, $localfile, $logs);
+        $logs[] = get_string('file_found_and_downloaded', 'local_backupftp');
+
+        return ['status' => 'completed', 'size' => $size];
+    }
+
+    /**
+     * Copy/download a file using the configured FTP/local source, preserving legacy behavior.
+     *
+     * @param string $remotefile Remote/local file path.
+     * @param string $localfile Local target path.
+     * @param array $logs Logs by reference.
+     * @return array{status:string,size:int}
+     */
+    private function copy_configured_source_file(string $remotefile, string $localfile, array &$logs): array {
+        $localfileenable = get_config('local_backupftp', 'localfileenable');
+        $ftpenable = get_config('local_backupftp', 'ftpenable');
+
+        if ($ftpenable) {
+            $ftp = new ftp();
+            $logs = $ftp->connect($logs);
+
+            $size = ftp_size($ftp->conn_id, $remotefile);
+            $size = (int)preg_replace('/[^0-9]/', '', $size);
+            if ($size < 10) {
+                $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
+                return ['status' => 'error', 'size' => 0];
+            }
+
+            $fileresource = fopen($localfile, 'wb');
+            if ($fileresource === false) {
+                $logs[] = get_string('transfer_restore_tempfile_error', 'local_backupftp');
+                return ['status' => 'error', 'size' => 0];
+            }
+
+            if (ftp_fget($ftp->conn_id, $fileresource, $remotefile, FTP_BINARY)) {
+                fclose($fileresource);
+                $logs[] = get_string('file_found_and_downloaded', 'local_backupftp');
+            } else {
+                fclose($fileresource);
+                @unlink($localfile);
+                $logs[] = get_string('error_downloading_file', 'local_backupftp', ['error' => json_encode(error_get_last())]);
+                return ['status' => 'error', 'size' => 0];
+            }
+        } else if ($localfileenable) {
+            $size = is_file($remotefile) ? (int)filesize($remotefile) : 0;
+            if ($size < 10) {
+                $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
+                return ['status' => 'error', 'size' => 0];
+            }
+            copy($remotefile, $localfile);
+            mtrace(' Size: ' . filesize($localfile));
+        } else {
+            $logs[] = 'plugin Disable';
+            return ['status' => 'error', 'size' => 0];
+        }
+
+        clearstatcache(true, $localfile);
+        $size = is_file($localfile) ? (int)filesize($localfile) : 0;
+
+        return ['status' => 'completed', 'size' => $size];
     }
 }

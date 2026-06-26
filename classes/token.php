@@ -24,13 +24,19 @@
 
 namespace local_backupftp;
 
-use core\exception\moodle_exception;
+use moodle_exception;
 use stdClass;
 
 /**
  * Helper for short lived transfer tokens.
  */
 class token {
+
+    /**
+     * Token table name.
+     */
+    public const TABLE = 'local_backupftp_token';
+
     /**
      * Default token lifetime: 48 hours.
      */
@@ -63,7 +69,7 @@ class token {
             'revoked' => 0,
         ];
 
-        $record->id = $DB->insert_record('local_backupftp_token', $record);
+        $record->id = $DB->insert_record(self::TABLE, $record);
 
         return [
             'token' => $plain,
@@ -81,11 +87,11 @@ class token {
     public static function revoke(int $id): bool {
         global $DB;
 
-        if (!$DB->record_exists('local_backupftp_token', ['id' => $id])) {
+        if (!$DB->record_exists(self::TABLE, ['id' => $id])) {
             return false;
         }
 
-        $DB->update_record('local_backupftp_token', (object)[
+        $DB->update_record(self::TABLE, (object)[
             'id' => $id,
             'revoked' => 1,
         ]);
@@ -109,7 +115,7 @@ class token {
             return null;
         }
 
-        $record = $DB->get_record('local_backupftp_token', [
+        $record = $DB->get_record(self::TABLE, [
             'tokenhash' => self::hash_token($plain),
             'revoked' => 0,
         ]);
@@ -125,7 +131,7 @@ class token {
         if ($touch) {
             $record->lastused = time();
             $record->downloadcount = ((int)$record->downloadcount) + 1;
-            $DB->update_record('local_backupftp_token', $record);
+            $DB->update_record(self::TABLE, $record);
         }
 
         return $record;
@@ -137,7 +143,6 @@ class token {
      * @param bool $touch Update last used/download counter.
      * @return stdClass
      * @throws moodle_exception
-     * @throws \coding_exception
      * @throws \dml_exception
      */
     public static function require_valid_token(bool $touch = true): stdClass {
@@ -154,7 +159,6 @@ class token {
      * Return token supplied by query/body param or Authorization Bearer header.
      *
      * @return string
-     * @throws \coding_exception
      */
     public static function get_request_token(): string {
         $token = optional_param('token', '', PARAM_RAW_TRIMMED);
@@ -188,7 +192,6 @@ class token {
      * Return configured lifetime in seconds.
      *
      * @return int
-     * @throws \dml_exception
      */
     public static function get_lifetime(): int {
         $lifetime = (int)get_config('local_backupftp', 'tokenduration');
@@ -209,7 +212,7 @@ class token {
         global $DB;
 
         $cutoff = time() - WEEKSECS;
-        $DB->delete_records_select('local_backupftp_token',
+        $DB->delete_records_select(self::TABLE,
             '(timeexpires < :cutoffexpired) OR (revoked = 1 AND timecreated < :cutoffrevoked)',
             [
                 'cutoffexpired' => $cutoff,
@@ -222,7 +225,6 @@ class token {
      * Generate plain token.
      *
      * @return string
-     * @throws \Random\RandomException
      */
     private static function generate_plain_token(): string {
         if (function_exists('random_bytes')) {
@@ -247,7 +249,6 @@ class token {
      *
      * @param string $name Name.
      * @return string
-     * @throws \coding_exception
      */
     private static function clean_name(string $name): string {
         $name = trim(str_replace(["\r", "\n", "\t", chr(0)], ' ', $name));
@@ -255,8 +256,8 @@ class token {
             $name = get_string('transfer_token_default_name', 'local_backupftp');
         }
 
-        if (strlen($name) > 255) {
-            $name = substr($name, 0, 255);
+        if (\core_text::strlen($name) > 255) {
+            $name = \core_text::substr($name, 0, 255);
         }
 
         return $name;
