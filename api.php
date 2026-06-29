@@ -15,15 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Public transfer API authenticated by a short lived token.
+ * phpcs:disable moodle.Files.RequireLogin.Missing
  *
- * Examples:
- *   /local/backupftp/api.php?action=courses&token=TOKEN
- *   /local/backupftp/api.php?action=course&id=12&token=TOKEN
- *   /local/backupftp/api.php?action=categories&token=TOKEN
- *   /local/backupftp/api.php?action=category&id=3&token=TOKEN
- *   /local/backupftp/api.php?action=backups&token=TOKEN
- *   /local/backupftp/api.php?action=users&token=TOKEN
+ * Public transfer API authenticated by a short lived token.
  *
  * @package   local_backupftp
  * @copyright 2026 Eduardo Kraus {@link https://eduardokraus.com}
@@ -34,8 +28,7 @@ use local_backupftp\api;
 use local_backupftp\token;
 
 require(__DIR__ . '/../../config.php');
-
-require_once($CFG->dirroot . '/course/lib.php');
+require_once("{$CFG->dirroot}/course/lib.php");
 
 @header('Content-Type: application/json; charset=utf-8');
 @header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -117,9 +110,9 @@ function local_backupftp_api_response($data, ?stdClass $tokenrecord = null): voi
     ];
 
     if ($tokenrecord) {
-        $timeexpires = (int)$tokenrecord->timeexpires;
+        $timeexpires = (int) $tokenrecord->timeexpires;
         $response['token'] = [
-            'id' => (int)$tokenrecord->id,
+            'id' => (int) $tokenrecord->id,
             'name' => $tokenrecord->name,
             'timeexpires' => $timeexpires,
             'timeremaining' => max(0, $timeexpires - time()),
