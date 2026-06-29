@@ -185,7 +185,7 @@ class backup_course extends scheduled_task {
             if ($ftpenable) {
                 $ftp = new ftp();
                 $logs = $ftp->connect($logs);
-                if (!$ftp->conn_id) {
+                if (!$ftp->connid) {
                     return $logs;
                 }
             }
@@ -222,7 +222,7 @@ class backup_course extends scheduled_task {
                 $path = str_replace("/", ".", $path);
                 if ($ftpenable) {
                     $ftppath = "{$ftppath}/{$path}";
-                    if (!@ftp_mkdir($ftp->conn_id, $ftppath)) {
+                    if (!@ftp_mkdir($ftp->connid, $ftppath)) {
                         $logsfolder[] = get_string('error_creating_folder', 'local_backupftp',
                             ["ftppath" => $ftppath, "errormsg" => error_get_last()]);
                     }
@@ -235,9 +235,9 @@ class backup_course extends scheduled_task {
 
             $remotefilepath = "{$ftppath}/{$filename}";
             if ($ftpenable) {
-                @ftp_delete($ftp->conn_id, $remotefilepath);
+                @ftp_delete($ftp->connid, $remotefilepath);
 
-                if (ftp_fput($ftp->conn_id, $remotefilepath, fopen($localtempfile, "r"), FTP_BINARY)) {
+                if (ftp_fput($ftp->connid, $remotefilepath, fopen($localtempfile, "r"), FTP_BINARY)) {
                     $logs[] = get_string('file_uploaded', 'local_backupftp',
                         ['file' => $localtempfile, 'remote_file' => $remotefilepath]);
                 } else {
@@ -249,7 +249,7 @@ class backup_course extends scheduled_task {
 
                     return $logs;
                 }
-                ftp_close($ftp->conn_id);
+                ftp_close($ftp->connid);
             }
             if ($localfileenable) {
                 if ($ftporganize) {

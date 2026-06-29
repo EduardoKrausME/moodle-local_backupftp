@@ -787,12 +787,12 @@ function local_backupftp_list_filesfromftp(string $directory): string {
     $ftp = new ftp();
     $ftp->connect();
 
-    if (empty($ftp->conn_id)) {
+    if (empty($ftp->connid)) {
         return html_writer::tag('p', get_string('ftp_error_connecting', 'local_backupftp'));
     }
 
     $files = [];
-    $raw = @ftp_rawlist($ftp->conn_id, rtrim($directory, '/') . '/');
+    $raw = @ftp_rawlist($ftp->connid, rtrim($directory, '/') . '/');
 
     if (is_array($raw)) {
         foreach ($raw as $line) {

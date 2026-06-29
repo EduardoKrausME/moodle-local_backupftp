@@ -283,7 +283,7 @@ class restore_course extends scheduled_task {
             $ftp = new ftp();
             $logs = $ftp->connect($logs);
 
-            $size = ftp_size($ftp->conn_id, $remotefile);
+            $size = ftp_size($ftp->connid, $remotefile);
             $size = (int)preg_replace('/[^0-9]/', '', $size);
             if ($size < 10) {
                 $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
@@ -296,7 +296,7 @@ class restore_course extends scheduled_task {
                 return ['status' => 'error', 'size' => 0];
             }
 
-            if (ftp_fget($ftp->conn_id, $fileresource, $remotefile, FTP_BINARY)) {
+            if (ftp_fget($ftp->connid, $fileresource, $remotefile, FTP_BINARY)) {
                 fclose($fileresource);
                 $logs[] = get_string('file_found_and_downloaded', 'local_backupftp');
             } else {
