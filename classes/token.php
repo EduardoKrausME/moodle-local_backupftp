@@ -31,12 +31,6 @@ use stdClass;
  * Helper for short lived transfer tokens.
  */
 class token {
-
-    /**
-     * Token table name.
-     */
-    public const TABLE = 'local_backupftp_token';
-
     /**
      * Default token lifetime: 48 hours.
      */
@@ -69,7 +63,7 @@ class token {
             'revoked' => 0,
         ];
 
-        $record->id = $DB->insert_record(self::TABLE, $record);
+        $record->id = $DB->insert_record("local_backupftp_token", $record);
 
         return [
             'token' => $plain,
@@ -87,11 +81,11 @@ class token {
     public static function revoke(int $id): bool {
         global $DB;
 
-        if (!$DB->record_exists(self::TABLE, ['id' => $id])) {
+        if (!$DB->record_exists("local_backupftp_token", ['id' => $id])) {
             return false;
         }
 
-        $DB->update_record(self::TABLE, (object)[
+        $DB->update_record("local_backupftp_token", (object)[
             'id' => $id,
             'revoked' => 1,
         ]);
@@ -115,7 +109,7 @@ class token {
             return null;
         }
 
-        $record = $DB->get_record(self::TABLE, [
+        $record = $DB->get_record("local_backupftp_token", [
             'tokenhash' => self::hash_token($plain),
             'revoked' => 0,
         ]);
@@ -131,7 +125,7 @@ class token {
         if ($touch) {
             $record->lastused = time();
             $record->downloadcount = ((int)$record->downloadcount) + 1;
-            $DB->update_record(self::TABLE, $record);
+            $DB->update_record("local_backupftp_token", $record);
         }
 
         return $record;
@@ -177,11 +171,13 @@ class token {
             }
         }
 
-        if (!empty($_SERVER['HTTP_AUTHORIZATION']) && preg_match('/^Bearer\s+(.+)$/i', trim($_SERVER['HTTP_AUTHORIZATION']), $matches)) {
+        if (!empty($_SERVER['HTTP_AUTHORIZATION']) &&
+            preg_match('/^Bearer\s+(.+)$/i', trim($_SERVER['HTTP_AUTHORIZATION']), $matches)) {
             return trim($matches[1]);
         }
 
-        if (!empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) && preg_match('/^Bearer\s+(.+)$/i', trim($_SERVER['REDIRECT_HTTP_AUTHORIZATION']), $matches)) {
+        if (!empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION']) &&
+            preg_match('/^Bearer\s+(.+)$/i', trim($_SERVER['REDIRECT_HTTP_AUTHORIZATION']), $matches)) {
             return trim($matches[1]);
         }
 
@@ -212,7 +208,7 @@ class token {
         global $DB;
 
         $cutoff = time() - WEEKSECS;
-        $DB->delete_records_select(self::TABLE,
+        $DB->delete_records_select("local_backupftp_token",
             '(timeexpires < :cutoffexpired) OR (revoked = 1 AND timecreated < :cutoffrevoked)',
             [
                 'cutoffexpired' => $cutoff,
