@@ -91,7 +91,7 @@ function xmldb_local_backupftp_upgrade($oldversion) {
             $dbman->add_index($table, $index);
         }
 
-        upgrade_plugin_savepoint(true, 2026062601, 'local', 'backupftp');
+        upgrade_plugin_savepoint(true, 2026062900, 'local', 'backupftp');
     }
 
     return true;
