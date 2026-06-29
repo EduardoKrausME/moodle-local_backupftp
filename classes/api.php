@@ -26,8 +26,11 @@ namespace local_backupftp;
 
 use context_course;
 use context_coursecat;
-use core_course_category;
+use Exception;
+use FilesystemIterator;
 use moodle_url;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use stdClass;
 
 /**
@@ -40,6 +43,8 @@ class api {
      *
      * @return array
      * @throws \dml_exception
+     * @throws \core\exception\moodle_exception
+     * @throws \coding_exception
      */
     public static function list_courses(): array {
         global $DB;
@@ -98,6 +103,8 @@ class api {
      *
      * @return array
      * @throws \dml_exception
+     * @throws \core\exception\moodle_exception
+     * @throws \coding_exception
      */
     public static function get_course(): array {
         global $DB;
@@ -111,7 +118,7 @@ class api {
             $course = $DB->get_record('course', ['shortname' => $shortname], '*', MUST_EXIST);
         }
 
-        $category = $DB->get_record('course_categories', ['id' => $course->category], '*', IGNORE_MISSING);
+        $category = $DB->get_record('course_categories', ['id' => $course->category]);
 
         $data = self::course_record_to_array($course, true);
         $data['category'] = $category ? self::category_record_to_array($category, false) : null;
@@ -125,6 +132,7 @@ class api {
      *
      * @return array
      * @throws \dml_exception
+     * @throws \coding_exception
      */
     public static function list_categories(): array {
         global $DB;
@@ -159,6 +167,8 @@ class api {
      *
      * @return array
      * @throws \dml_exception
+     * @throws \core\exception\moodle_exception
+     * @throws \coding_exception
      */
     public static function get_category(): array {
         global $DB;
@@ -193,6 +203,7 @@ class api {
      * @param string $requesttoken Plain request token, used to build direct download URLs.
      * @return array
      * @throws \dml_exception
+     * @throws \Exception
      */
     public static function list_backups(string $requesttoken = ''): array {
         global $DB;
@@ -243,6 +254,7 @@ class api {
      *
      * @return array
      * @throws \dml_exception
+     * @throws \coding_exception
      */
     public static function list_users(): array {
         global $DB;
@@ -301,6 +313,7 @@ class api {
      * @param stdClass $record Course record.
      * @param bool $full Include more fields.
      * @return array
+     * @throws \core\exception\moodle_exception
      */
     private static function course_record_to_array(stdClass $record, bool $full): array {
         global $CFG;
@@ -309,7 +322,7 @@ class api {
         if (!empty($record->id) && (int) $record->id !== SITEID) {
             try {
                 $contextid = context_course::instance((int) $record->id)->id;
-            } catch (\Exception $e) {
+            } catch (Exception) {
                 $contextid = null;
             }
         }
@@ -405,10 +418,9 @@ class api {
      * @return array
      */
     private static function category_record_to_array(stdClass $record, bool $full): array {
-        $contextid = null;
         try {
             $contextid = context_coursecat::instance((int) $record->id)->id;
-        } catch (\Exception $e) {
+        } catch (Exception) {
             $contextid = null;
         }
 
@@ -477,6 +489,10 @@ class api {
      *
      * @param string $requesttoken Token used in direct download URL.
      * @return array
+     * @throws \core\exception\moodle_exception
+     * @throws \coding_exception
+     * @throws \dml_exception
+     * @throws \Exception
      */
     private static function list_local_backup_files(string $requesttoken): array {
         $root = localfilepath::get_path();
@@ -487,9 +503,9 @@ class api {
 
         $limit = self::get_limit(200, 2000);
         $items = [];
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($rootreal, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::LEAVES_ONLY
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($rootreal, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::LEAVES_ONLY
         );
 
         foreach ($iterator as $fileinfo) {
@@ -499,7 +515,7 @@ class api {
             if (!$fileinfo->isFile() || $fileinfo->isLink()) {
                 continue;
             }
-            if (\core_text::strtolower($fileinfo->getExtension()) !== 'mbz') {
+            if (strtolower($fileinfo->getExtension()) !== 'mbz') {
                 continue;
             }
 
@@ -567,7 +583,7 @@ class api {
                   FROM {course} c
              LEFT JOIN {course_categories} cc ON cc.id = c.category
                  WHERE c.id = :courseid';
-        $course = $DB->get_record_sql($sql, ['courseid' => $courseid], IGNORE_MISSING);
+        $course = $DB->get_record_sql($sql, ['courseid' => $courseid]);
         if (!$course) {
             $empty['courseid'] = $courseid;
             return $empty;
@@ -588,6 +604,7 @@ class api {
      * @param int $default Default value.
      * @param int $max Maximum value.
      * @return int
+     * @throws \coding_exception
      */
     private static function get_limit(int $default = 200, int $max = 500): int {
         $limit = optional_param('limit', $default, PARAM_INT);
@@ -605,6 +622,7 @@ class api {
      * Get offset param.
      *
      * @return int
+     * @throws \coding_exception
      */
     private static function get_offset(): int {
         $offset = optional_param('offset', 0, PARAM_INT);

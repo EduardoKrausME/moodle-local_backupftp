@@ -57,7 +57,7 @@ if ($rel === '' || preg_match('#(^|/)\.\.(/|$)#', $rel)) {
     send_file_not_found();
 }
 
-$ext = core_text::strtolower(pathinfo($rel, PATHINFO_EXTENSION));
+$ext = strtolower(pathinfo($rel, PATHINFO_EXTENSION));
 if ($ext !== 'mbz') {
     send_file_not_found();
 }

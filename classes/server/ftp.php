@@ -34,7 +34,7 @@ class ftp {
     /**
      * FTP connection resource.
      *
-     * @var resource|null
+     * @var \FTP\Connection
      */
     public $connid = null;
 

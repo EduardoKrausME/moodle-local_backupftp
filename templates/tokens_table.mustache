@@ -61,10 +61,7 @@
                 <td>
                     {{#hasaction}}
                         <a href="{{{revokeurl}}}"
-                           class="btn btn-danger btn-sm"
-                           onclick="return confirm({{{confirmjson}}});">
-                            {{#str}}transfer_token_revoke, local_backupftp{{/str}}
-                        </a>
+                           class="btn btn-danger btn-sm">{{#str}}transfer_token_revoke, local_backupftp{{/str}}</a>
                     {{/hasaction}}
                     {{^hasaction}}
                         -

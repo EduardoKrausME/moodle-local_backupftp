@@ -136,7 +136,7 @@ class restore_course extends scheduled_task {
         $extension = pathinfo($remotefile, PATHINFO_EXTENSION);
         $filename = pathinfo($remotefile, PATHINFO_FILENAME);
 
-        if (\core_text::strtolower($extension) !== 'mbz') {
+        if (strtolower($extension) !== 'mbz') {
             $logs[] = 'File is not MBZ';
             return ['status' => 'error', 'logs' => $logs];
         }

@@ -105,7 +105,7 @@ class transfer_client {
             return '';
         }
 
-        if (\core_text::strtolower(pathinfo($file, PATHINFO_EXTENSION)) !== 'mbz') {
+        if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) !== 'mbz') {
             return '';
         }
 

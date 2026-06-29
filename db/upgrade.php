@@ -27,9 +27,12 @@
  *
  * @param int $oldversion Old plugin version.
  * @return bool
- * @throws ddl_exception
- * @throws downgrade_exception
- * @throws upgrade_exception
+ * @throws \ddl_change_structure_exception
+ * @throws \ddl_exception
+ * @throws \ddl_table_missing_exception
+ * @throws \downgrade_exception
+ * @throws \moodle_exception
+ * @throws \upgrade_exception
  */
 function xmldb_local_backupftp_upgrade($oldversion) {
     global $DB;

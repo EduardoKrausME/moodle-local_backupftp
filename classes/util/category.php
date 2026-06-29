@@ -198,8 +198,8 @@ class category {
         $name = trim($name);
 
         // Reasonable safety limit.
-        if (core_text::strlen($name) > 255) {
-            $name = core_text::substr($name, 0, 255);
+        if (strlen($name) > 255) {
+            $name = substr($name, 0, 255);
         }
 
         return $name;

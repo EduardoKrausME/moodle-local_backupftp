@@ -27,21 +27,21 @@
 }}
 
 <div class="alert alert-success">
-    <label style="display:block">
+    <div style="display:block">
         <div><strong>{{#str}}transfer_restore_wwwroot, local_backupftp{{/str}}</strong></div>
         <pre>{{{wwwroot}}}</pre>
-    </label>
+    </div>
 
     {{#serverip}}
-        <label style="display:block">
+        <div style="display:block">
             <div><strong>{{#str}}transfer_restore_ip, local_backupftp{{/str}}</strong></div>
             <pre>{{{serverip}}}</pre>
-        </label>
+        </div>
     {{/serverip}}
 
-    <label style="display:block">
+    <div style="display:block">
         <div><strong>{{#str}}transfer_token_created_once, local_backupftp{{/str}}</strong></div>
         <pre style="margin-bottom:0;">{{{token}}}</pre>
         <div><small>{{#str}}transfer_token_created_once_desc, local_backupftp{{/str}}</small></div>
-    </label>
+    </div>
 </div>

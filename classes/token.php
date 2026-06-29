@@ -323,8 +323,8 @@ class token {
             $name = get_string('transfer_token_default_name', 'local_backupftp');
         }
 
-        if (\core_text::strlen($name) > 255) {
-            $name = \core_text::substr($name, 0, 255);
+        if (\strlen($name) > 255) {
+            $name = \substr($name, 0, 255);
         }
 
         return $name;
