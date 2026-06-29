@@ -22,8 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die;
-
 /**
  * Upgrade local_backupftp database schema.
  *
@@ -60,7 +58,6 @@ function xmldb_local_backupftp_upgrade($oldversion) {
 
         upgrade_plugin_savepoint(true, 2026062600, 'local', 'backupftp');
     }
-
 
     if ($oldversion < 2026062601) {
         $table = new xmldb_table('local_backupftp_restore');
