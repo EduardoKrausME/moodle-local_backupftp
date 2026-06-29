@@ -961,7 +961,7 @@ function local_backupftp_list_filesfromlocal(string $directory): string {
         $alreadytext = '';
 
         $sql = "
-            SELECT * 
+            SELECT *
               FROM {local_backupftp_restore}
              WHERE remotefile = :remotefile";
         if ($restore = $DB->get_record_sql($sql, ['remotefile' => $remotefile], IGNORE_MULTIPLE)) {
