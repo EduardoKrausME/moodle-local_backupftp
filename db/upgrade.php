@@ -62,7 +62,7 @@ function xmldb_local_backupftp_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026062600, 'local', 'backupftp');
     }
 
-    if ($oldversion < 2026062601) {
+    if ($oldversion < 2026062900) {
         $table = new xmldb_table('local_backupftp_restore');
 
         $fields = [
