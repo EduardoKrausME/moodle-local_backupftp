@@ -85,8 +85,8 @@ if (!empty($categoryids)) {
 
 // Navigation.
 echo $OUTPUT->render_from_template('local_backupftp/backup_action_cards', [
-    'reporturl' => (new moodle_url('/local/backupftp/report-backup.php'))->out(false),
-    'taskurl' => (new moodle_url('/local/backupftp/run-task.php'))->out(false),
+    'reporturl' => new moodle_url('/local/backupftp/report-backup.php'),
+    'taskurl' => new moodle_url('/local/backupftp/run-task.php'),
 ]);
 
 // Form.
@@ -94,74 +94,7 @@ echo $OUTPUT->render_from_template('local_backupftp/backup_form', [
     'actionurl' => $PAGE->url->out(false),
     'sesskey' => sesskey(),
     'tree' => $OUTPUT->render_from_template('local_backupftp/backup_tree_toolbar', []),
-    'categorias' => local_backupftp_categorias(0),
+    'categorias' => \local_backupftp\renderer\backup::categorias(0),
 ]);
 
 echo $OUTPUT->footer();
-
-/**
- * Render nested category selector.
- *
- * @param int $parentid Parent category id.
- * @return string
- */
-function local_backupftp_categorias(int $parentid): string {
-    global $DB;
-
-    $categories = $DB->get_records('course_categories', ['parent' => $parentid], 'sortorder', 'id,name,parent');
-    if (!$categories) {
-        return '';
-    }
-
-    $out = '';
-    foreach ($categories as $category) {
-        $out .= local_backupftp_render_category_node($category);
-    }
-
-    return $out;
-}
-
-/**
- * Render a single category node.
- *
- * @param stdClass $category Category record.
- * @return string
- */
-function local_backupftp_render_category_node(stdClass $category): string {
-    global $DB, $OUTPUT;
-
-    $context = context_system::instance();
-    $categoryid = $category->id;
-    $unique = uniqid('lbfcat_');
-    $inputid = 'id-' . $unique;
-
-    $coursecount = $DB->count_records('course', ['category' => $categoryid]);
-    $statusrows = $DB->get_records_sql(
-        "SELECT status, COUNT(1) AS linhas
-           FROM {local_backupftp_course}
-          WHERE courseid IN (SELECT c.id FROM {course} c WHERE c.category = :category)
-       GROUP BY status
-       ORDER BY status",
-        ['category' => $categoryid]
-    );
-
-    $statuslist = [];
-    foreach ($statusrows as $row) {
-        $statuslist[] = [
-            'label' => $row->status . ': ' . (int) $row->linhas,
-        ];
-    }
-
-    $name = format_string($category->name, true, ['context' => $context]);
-    $children = local_backupftp_categorias($categoryid);
-
-    return $OUTPUT->render_from_template('local_backupftp/backup_category_node', [
-        'categoryid' => $categoryid,
-        'inputid' => $inputid,
-        'name' => $name,
-        'coursecount' => $coursecount,
-        'statuses' => $statuslist,
-        'haschildren' => $children !== '',
-        'children' => $children,
-    ]);
-}

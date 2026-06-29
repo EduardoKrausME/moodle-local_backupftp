@@ -81,7 +81,7 @@ if ($action === 'backup' || $action === 'restore') {
 
     echo $OUTPUT->render_from_template('local_backupftp/run-task-result', [
         'text' => $text,
-        'backurl' => (new moodle_url('/local/backupftp/run-task.php'))->out(false),
+        'backurl' => new moodle_url('/local/backupftp/run-task.php'),
     ]);
 
     echo $OUTPUT->footer();

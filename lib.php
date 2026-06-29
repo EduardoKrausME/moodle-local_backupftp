@@ -27,7 +27,6 @@
  *
  * @param global_navigation $nav
  *
- * @throws \core\exception\moodle_exception
  * @throws coding_exception
  * @throws dml_exception
  */
