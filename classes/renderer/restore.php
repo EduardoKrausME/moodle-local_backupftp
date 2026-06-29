@@ -844,9 +844,9 @@ class restore {
             $alreadytext = '';
 
             $sql = "
-            SELECT *
-              FROM {local_backupftp_restore}
-             WHERE remotefile = :remotefile";
+                SELECT *
+                  FROM {local_backupftp_restore}
+                 WHERE remotefile = :remotefile";
             if ($restore = $DB->get_record_sql($sql, ['remotefile' => $remotefile], IGNORE_MULTIPLE)) {
                 $alreadyadded = true;
                 $alreadytext = get_string('already_added_status', 'local_backupftp', ['status' => $restore->status]);
