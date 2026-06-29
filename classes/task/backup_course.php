@@ -29,6 +29,7 @@ use backup_controller;
 use backup_plan_dbops;
 use core\task\scheduled_task;
 use Exception;
+use local_backupftp\localfilepath;
 use local_backupftp\server\ftp;
 use stored_file;
 
@@ -172,10 +173,10 @@ class backup_course extends scheduled_task {
      * @throws Exception
      */
     private function send_file_ftp_local($localtempfile, $filename, $courseid, $logs) {
-        global $DB, $CFG;
+        global $DB;
 
         $localfileenable = get_config("local_backupftp", "localfileenable");
-        $localfilepath = get_config("local_backupftp", "localfilepath");
+        $localfilepath = "";
         $ftpenable = get_config("local_backupftp", "ftpenable");
         $ftpnames = get_config("local_backupftp", "ftpnames");
         $ftppath = get_config("local_backupftp", "ftppasta");
@@ -190,9 +191,7 @@ class backup_course extends scheduled_task {
                 }
             }
             if ($localfileenable) {
-                if (!isset($localfilepath[3])) {
-                    $localfilepath = "{$CFG->dataroot}/backup";
-                }
+                $localfilepath = localfilepath::get_path();
             }
 
             $course = null;
@@ -217,9 +216,17 @@ class backup_course extends scheduled_task {
                 $paths = array_reverse($paths);
             }
 
-            $logsfolder = [];
+            $safepaths = [];
             foreach ($paths as $path) {
-                $path = str_replace("/", ".", $path);
+                $path = trim(str_replace(["/", "\\"], ".", $path));
+                if ($path !== "") {
+                    $safepaths[] = $path;
+                }
+            }
+
+            $logsfolder = [];
+            $localfolderpath = $localfilepath;
+            foreach ($safepaths as $path) {
                 if ($ftpenable) {
                     $ftppath = "{$ftppath}/{$path}";
                     if (!@ftp_mkdir($ftp->connid, $ftppath)) {
@@ -228,8 +235,10 @@ class backup_course extends scheduled_task {
                     }
                 }
                 if ($localfileenable) {
-                    $localpath = "{$localfilepath}/{$path}";
-                    @mkdir($localpath, 0777, true);
+                    $localfolderpath .= DIRECTORY_SEPARATOR . $path;
+                    if (!make_writable_directory($localfolderpath, true)) {
+                        $logsfolder[] = get_string('log:savelocal:error', 'local_backupftp', $localfolderpath);
+                    }
                 }
             }
 
@@ -253,12 +262,13 @@ class backup_course extends scheduled_task {
             }
             if ($localfileenable) {
                 if ($ftporganize) {
-                    $backuppath = implode("/", $paths);
-                    $localfile = "{$localfilepath}/{$backuppath}/{$filename}";
+                    $localfile = $localfolderpath . DIRECTORY_SEPARATOR . $filename;
                 } else {
-                    $localfile = "{$localfilepath}/{$filename}";
+                    $localfile = $localfilepath . DIRECTORY_SEPARATOR . $filename;
                 }
-                if (copy($localtempfile, $localfile)) {
+                if (!make_writable_directory(dirname($localfile), true)) {
+                    $logs[] = get_string('log:savelocal:error', 'local_backupftp', $localfile);
+                } else if (copy($localtempfile, $localfile)) {
                     $logs[] = get_string('log:savelocal:success', 'local_backupftp', $localfile);
                 } else {
                     $logs[] = get_string('log:savelocal:error', 'local_backupftp', $localfile);
