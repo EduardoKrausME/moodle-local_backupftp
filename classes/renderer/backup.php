@@ -38,7 +38,7 @@ class backup {
      * @return string
      * @throws \dml_exception
      */
-    public static  function categorias(int $parentid): string {
+    public static function categorias(int $parentid): string {
         global $DB;
 
         $categories = $DB->get_records('course_categories', ['parent' => $parentid], 'sortorder', 'id,name,parent');
@@ -48,7 +48,7 @@ class backup {
 
         $out = '';
         foreach ($categories as $category) {
-            $out .= backup::render_category_node($category);
+            $out .= self::render_category_node($category);
         }
 
         return $out;
@@ -61,7 +61,7 @@ class backup {
      * @return string
      * @throws \dml_exception
      */
-  private static function render_category_node(stdClass $category): string {
+    private static function render_category_node(stdClass $category): string {
         global $DB, $OUTPUT;
 
         $context = context_system::instance();
@@ -87,7 +87,7 @@ class backup {
         }
 
         $name = format_string($category->name, true, ['context' => $context]);
-        $children = backup::categorias($categoryid);
+        $children = self::categorias($categoryid);
 
         return $OUTPUT->render_from_template('local_backupftp/backup_category_node', [
             'categoryid' => $categoryid,
@@ -99,5 +99,4 @@ class backup {
             'children' => $children,
         ]);
     }
-
 }

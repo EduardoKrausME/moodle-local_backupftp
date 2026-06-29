@@ -42,7 +42,7 @@ class restore {
      *
      * @return array
      */
-  public static function get_remote_transfer_restore_session(): array {
+    public static function get_remote_transfer_restore_session(): array {
         global $SESSION;
 
         $data = $SESSION->local_backupftp_remote_restore ?? [];
@@ -51,10 +51,10 @@ class restore {
         }
 
         return [
-            'remotewwwroot' => (string)($data['remotewwwroot'] ?? ''),
-            'remoteip' => (string)($data['remoteip'] ?? ''),
-            'remotetoken' => (string)($data['remotetoken'] ?? ''),
-            'timecreated' => (int)($data['timecreated'] ?? 0),
+            'remotewwwroot' => (string) ($data['remotewwwroot'] ?? ''),
+            'remoteip' => (string) ($data['remoteip'] ?? ''),
+            'remotetoken' => (string) ($data['remotetoken'] ?? ''),
+            'timecreated' => (int) ($data['timecreated'] ?? 0),
         ];
     }
 
@@ -64,7 +64,7 @@ class restore {
      * @return void
      * @throws \coding_exception
      */
-    public static  function save_remote_transfer_restore_session(): void {
+    public static function save_remote_transfer_restore_session(): void {
         global $SESSION, $OUTPUT;
 
         $remotewwwroot = optional_param('remotewwwroot', '', PARAM_RAW_TRIMMED);
@@ -107,7 +107,7 @@ class restore {
     public static function render_remote_transfer_restore_summary(): string {
         global $OUTPUT, $PAGE;
 
-        $sessiondata = restore::get_remote_transfer_restore_session();
+        $sessiondata = self::get_remote_transfer_restore_session();
         if (empty($sessiondata['remotewwwroot']) || empty($sessiondata['remotetoken'])) {
             return '';
         }
@@ -131,9 +131,9 @@ class restore {
                     'actionurl' => $PAGE->url->out(false),
                     'sesskey' => sesskey(),
                     'hascounter' => $tokenexpires > 0,
-                    'countdown' => $tokenexpires > 0 ? restore::render_countdown($tokenexpires) : '',
+                    'countdown' => $tokenexpires > 0 ? self::render_countdown($tokenexpires) : '',
                     'restoreurl' => new moodle_url('/local/backupftp/report-restore.php'),
-                ] + restore::render_remote_files_table($files)
+                ] + self::render_remote_files_table($files)
             );
         } catch (Throwable $e) {
             return $OUTPUT->notification(s($e->getMessage()), 'notifyproblem');
@@ -150,7 +150,7 @@ class restore {
     public static function queue_remote_transfer_restore(array $selectedfiles): void {
         global $DB, $OUTPUT;
 
-        $sessiondata = restore::get_remote_transfer_restore_session();
+        $sessiondata = self::get_remote_transfer_restore_session();
         if (empty($sessiondata['remotewwwroot']) || empty($sessiondata['remotetoken'])) {
             echo $OUTPUT->notification(get_string('transfer_restore_missing_remote_data', 'local_backupftp'), 'notifyproblem');
             return;
@@ -158,7 +158,7 @@ class restore {
 
         $selected = [];
         foreach ($selectedfiles as $selectedfile) {
-            $relativepath = transfer_client::clean_backup_file((string)$selectedfile);
+            $relativepath = transfer_client::clean_backup_file((string) $selectedfile);
             if ($relativepath !== '') {
                 $selected[$relativepath] = true;
             }
@@ -193,13 +193,13 @@ class restore {
                     continue;
                 }
 
-                $relativepath = transfer_client::clean_backup_file((string)($file['relativepath'] ?? ''));
+                $relativepath = transfer_client::clean_backup_file((string) ($file['relativepath'] ?? ''));
                 if ($relativepath === '' || empty($selected[$relativepath])) {
                     continue;
                 }
 
-                $filesize = (int)($file['size'] ?? 0);
-                $timemodified = (int)($file['timemodified'] ?? 0);
+                $filesize = (int) ($file['size'] ?? 0);
+                $timemodified = (int) ($file['timemodified'] ?? 0);
 
                 $existing = $DB->get_record_select(
                     'local_backupftp_restore',
@@ -227,7 +227,7 @@ class restore {
                     $DB->update_record('local_backupftp_restore', $existing);
                     $updated++;
                 } else {
-                    $data = (object)[
+                    $data = (object) [
                         'remotefile' => $relativepath,
                         'source' => 'transfer',
                         'sourcewwwroot' => $remotewwwroot,
@@ -253,7 +253,7 @@ class restore {
             }
 
             try {
-                $usersresult = restore::restore_remote_users($remotewwwroot, $remoteip, $remotetoken);
+                $usersresult = self::restore_remote_users($remotewwwroot, $remoteip, $remotetoken);
                 $userssummary = get_string('transfer_restore_users_summary', 'local_backupftp', $usersresult);
             } catch (Throwable $userexception) {
                 $userssummary = get_string('transfer_restore_users_failed', 'local_backupftp', s($userexception->getMessage()));
@@ -313,13 +313,13 @@ class restore {
                     continue;
                 }
 
-                $user = restore::prepare_remote_user($remoteuser);
+                $user = self::prepare_remote_user($remoteuser);
                 if (!$user) {
                     $summary->ignored++;
                     continue;
                 }
 
-                $existing = restore::find_existing_user($user);
+                $existing = self::find_existing_user($user);
                 if ($existing) {
                     $user->id = (int) $existing->id;
                     unset($user->password);
@@ -382,22 +382,22 @@ class restore {
             'suspended' => (int) ($remoteuser['suspended'] ?? 0),
             'mnethostid' => $CFG->mnet_localhost_id,
             'username' => $username,
-            'idnumber' => restore::limit_text((string) ($remoteuser['idnumber'] ?? ''), 255),
-            'firstname' => restore::limit_text((string) ($remoteuser['firstname'] ?? $username), 100),
-            'lastname' => restore::limit_text((string) ($remoteuser['lastname'] ?? '-'), 100),
-            'email' => restore::limit_text($email, 100),
+            'idnumber' => self::limit_text((string) ($remoteuser['idnumber'] ?? ''), 255),
+            'firstname' => self::limit_text((string) ($remoteuser['firstname'] ?? $username), 100),
+            'lastname' => self::limit_text((string) ($remoteuser['lastname'] ?? '-'), 100),
+            'email' => self::limit_text($email, 100),
             'emailstop' => (int) ($remoteuser['emailstop'] ?? 0),
-            'phone1' => restore::limit_text((string) ($remoteuser['phone1'] ?? ''), 20),
-            'phone2' => restore::limit_text((string) ($remoteuser['phone2'] ?? ''), 20),
-            'institution' => restore::limit_text((string) ($remoteuser['institution'] ?? ''), 255),
-            'department' => restore::limit_text((string) ($remoteuser['department'] ?? ''), 255),
-            'address' => restore::limit_text((string) ($remoteuser['address'] ?? ''), 255),
-            'city' => restore::limit_text((string) ($remoteuser['city'] ?? ''), 120),
-            'country' => restore::limit_text((string) ($remoteuser['country'] ?? ''), 2),
-            'lang' => restore::limit_text((string) ($remoteuser['lang'] ?? current_language()), 30),
-            'calendartype' => restore::limit_text((string) ($remoteuser['calendartype'] ?? ''), 30),
-            'theme' => restore::limit_text((string) ($remoteuser['theme'] ?? ''), 50),
-            'timezone' => restore::limit_text((string) ($remoteuser['timezone'] ?? '99'), 100),
+            'phone1' => self::limit_text((string) ($remoteuser['phone1'] ?? ''), 20),
+            'phone2' => self::limit_text((string) ($remoteuser['phone2'] ?? ''), 20),
+            'institution' => self::limit_text((string) ($remoteuser['institution'] ?? ''), 255),
+            'department' => self::limit_text((string) ($remoteuser['department'] ?? ''), 255),
+            'address' => self::limit_text((string) ($remoteuser['address'] ?? ''), 255),
+            'city' => self::limit_text((string) ($remoteuser['city'] ?? ''), 120),
+            'country' => self::limit_text((string) ($remoteuser['country'] ?? ''), 2),
+            'lang' => self::limit_text((string) ($remoteuser['lang'] ?? current_language()), 30),
+            'calendartype' => self::limit_text((string) ($remoteuser['calendartype'] ?? ''), 30),
+            'theme' => self::limit_text((string) ($remoteuser['theme'] ?? ''), 50),
+            'timezone' => self::limit_text((string) ($remoteuser['timezone'] ?? '99'), 100),
             'mailformat' => (int) ($remoteuser['mailformat'] ?? 1),
             'maildigest' => (int) ($remoteuser['maildigest'] ?? 0),
             'maildisplay' => (int) ($remoteuser['maildisplay'] ?? 2),
@@ -405,11 +405,11 @@ class restore {
             'trackforums' => (int) ($remoteuser['trackforums'] ?? 0),
             'description' => (string) ($remoteuser['description'] ?? ''),
             'descriptionformat' => (int) ($remoteuser['descriptionformat'] ?? FORMAT_HTML),
-            'imagealt' => restore::limit_text((string) ($remoteuser['imagealt'] ?? ''), 255),
-            'lastnamephonetic' => restore::limit_text((string) ($remoteuser['lastnamephonetic'] ?? ''), 255),
-            'firstnamephonetic' => restore::limit_text((string) ($remoteuser['firstnamephonetic'] ?? ''), 255),
-            'middlename' => restore::limit_text((string) ($remoteuser['middlename'] ?? ''), 255),
-            'alternatename' => restore::limit_text((string) ($remoteuser['alternatename'] ?? ''), 255),
+            'imagealt' => self::limit_text((string) ($remoteuser['imagealt'] ?? ''), 255),
+            'lastnamephonetic' => self::limit_text((string) ($remoteuser['lastnamephonetic'] ?? ''), 255),
+            'firstnamephonetic' => self::limit_text((string) ($remoteuser['firstnamephonetic'] ?? ''), 255),
+            'middlename' => self::limit_text((string) ($remoteuser['middlename'] ?? ''), 255),
+            'alternatename' => self::limit_text((string) ($remoteuser['alternatename'] ?? ''), 255),
         ];
 
         if ($user->firstname === '') {
@@ -495,13 +495,13 @@ class restore {
         $coursefullname = '';
 
         if (preg_match('/^(\d+)\s*-\s*(.+)\.mbz$/iu', $filename, $matches)) {
-            $courseid = (int)$matches[1];
+            $courseid = (int) $matches[1];
             $coursefullname = trim($matches[2]);
         } else if (preg_match('/backup-moodle2-course-(\d+)-([^\/]+?)-\d{8,}/iu', $filename, $matches)) {
-            $courseid = (int)$matches[1];
+            $courseid = (int) $matches[1];
             $coursefullname = trim(str_replace(['_', '-'], ' ', $matches[2]));
         } else if (preg_match('/backup-moodle2-course-(\d+)-/iu', $filename, $matches)) {
-            $courseid = (int)$matches[1];
+            $courseid = (int) $matches[1];
         }
 
         $categoryname = '';
@@ -536,20 +536,20 @@ class restore {
                 continue;
             }
 
-            $relativepath = transfer_client::clean_backup_file((string)($file['relativepath'] ?? ''));
+            $relativepath = transfer_client::clean_backup_file((string) ($file['relativepath'] ?? ''));
             if ($relativepath === '') {
                 continue;
             }
 
-            $filename = (string)($file['filename'] ?? basename($relativepath));
-            $courseid = (int)($file['courseid'] ?? 0);
-            $coursefullname = (string)($file['coursefullname'] ?? ($file['coursename'] ?? ''));
-            $categoryid = (int)($file['categoryid'] ?? 0);
-            $categoryname = (string)($file['categoryname'] ?? '');
+            $filename = (string) ($file['filename'] ?? basename($relativepath));
+            $courseid = (int) ($file['courseid'] ?? 0);
+            $coursefullname = (string) ($file['coursefullname'] ?? ($file['coursename'] ?? ''));
+            $categoryid = (int) ($file['categoryid'] ?? 0);
+            $categoryname = (string) ($file['categoryname'] ?? '');
 
             if ($courseid <= 0 && $coursefullname === '') {
-                $guessedorigin = restore::guess_remote_file_origin($filename, $relativepath);
-                $courseid = (int)$guessedorigin['courseid'];
+                $guessedorigin = self::guess_remote_file_origin($filename, $relativepath);
+                $courseid = (int) $guessedorigin['courseid'];
                 $coursefullname = $guessedorigin['coursefullname'];
                 if ($categoryname === '') {
                     $categoryname = $guessedorigin['categoryname'];
@@ -559,7 +559,7 @@ class restore {
             $tablerows[] = [
                 'filename' => $filename,
                 'relativepath' => $relativepath,
-                'filesize' => display_size((int)($file['size'] ?? 0)),
+                'filesize' => display_size((int) ($file['size'] ?? 0)),
                 'courseid' => $courseid > 0 ? $courseid : '',
                 'coursefullname' => $coursefullname,
                 'hascourse' => $courseid > 0 || $coursefullname !== '',
@@ -727,7 +727,7 @@ class restore {
 
         foreach ($files as $file) {
             if ($file['type'] === 'dir') {
-                $internalreturn .= restore::list_filesfromftp(rtrim($directory, '/') . '/' . $file['name']);
+                $internalreturn .= self::list_filesfromftp(rtrim($directory, '/') . '/' . $file['name']);
                 continue;
             }
 
@@ -827,7 +827,7 @@ class restore {
                 if ($root && $real) {
                     $root = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
                     if (strpos($real, $root) === 0) {
-                        $internalreturn .= restore::list_filesfromlocal($file['name']);
+                        $internalreturn .= self::list_filesfromlocal($file['name']);
                     }
                 }
                 continue;
