@@ -31,7 +31,7 @@ $context = context_system::instance();
 
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/backupftp/index.php'));
-$PAGE->set_pagelayout('base');
+$PAGE->set_pagelayout("admin");
 $PAGE->set_title(get_string('courses_and_categories', 'local_backupftp'));
 $PAGE->set_heading(get_string('courses_and_categories', 'local_backupftp'));
 

@@ -143,6 +143,39 @@ class transfer_client {
         return $json;
     }
 
+
+
+    /**
+     * Fetch users from the remote Moodle transfer API.
+     *
+     * @param string $wwwroot Previous Moodle wwwroot.
+     * @param string $ip Optional old server IP.
+     * @param string $token Transfer token.
+     * @return array
+     * @throws moodle_exception
+     */
+    public static function fetch_users(string $wwwroot, string $ip, string $token): array {
+        $url = self::build_url($wwwroot, '/local/backupftp/api.php', [
+            'action' => 'users',
+            'limit' => 5000,
+            'token' => $token,
+        ]);
+
+        $response = self::request($url, $ip);
+        $json = json_decode($response['body'], true);
+
+        if (!is_array($json)) {
+            throw new moodle_exception('transfer_restore_invalid_json', 'local_backupftp');
+        }
+
+        if (empty($json['success'])) {
+            $message = $json['message'] ?? ($json['error'] ?? 'remote_error');
+            throw new moodle_exception('transfer_restore_remote_error', 'local_backupftp', '', s($message));
+        }
+
+        return $json;
+    }
+
     /**
      * Download a remote backup to a local temp file.
      *

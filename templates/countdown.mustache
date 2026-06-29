@@ -1,0 +1,52 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_backupftp/countdown
+
+    Example context (json):
+    {
+        "id": "lbf_countdown_123",
+        "remaining": "1 hour",
+        "timeexpires": 1234567890,
+        "expiredjson": "\"Expired\""
+    }
+}}
+<span id="{{{id}}}" class="badge badge-info" data-expires="{{{timeexpires}}}">{{{remaining}}}</span>
+<script>
+(function() {
+    var el = document.getElementById('{{{id}}}');
+    if (!el) { return; }
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    function tick() {
+        var diff = parseInt(el.getAttribute('data-expires'), 10) - Math.floor(Date.now() / 1000);
+        if (diff <= 0) {
+            el.textContent = {{{expiredjson}}};
+            el.className = 'badge badge-danger';
+            return;
+        }
+        var days = Math.floor(diff / 86400);
+        diff = diff % 86400;
+        var hours = Math.floor(diff / 3600);
+        diff = diff % 3600;
+        var minutes = Math.floor(diff / 60);
+        var seconds = diff % 60;
+        el.textContent = (days > 0 ? days + 'd ' : '') + pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+    }
+    tick();
+    window.setInterval(tick, 1000);
+}());
+</script>

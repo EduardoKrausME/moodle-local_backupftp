@@ -1,0 +1,47 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_backupftp/token_created_notification
+
+    Example context (json):
+    {
+        "token": "abc",
+        "wwwroot": "https://moodle.local",
+        "serverip": "111.111.111.111",
+        "token": "asdfghjkjhgfdsa"
+    }
+}}
+
+<div class="alert alert-success">
+    <label style="display:block">
+        <div><strong>{{#str}}transfer_restore_wwwroot, local_backupftp{{/str}}</strong></div>
+        <pre>{{{wwwroot}}}</pre>
+    </label>
+
+    {{#serverip}}
+        <label style="display:block">
+            <div><strong>{{#str}}transfer_restore_ip, local_backupftp{{/str}}</strong></div>
+            <pre>{{{serverip}}}</pre>
+        </label>
+    {{/serverip}}
+
+    <label style="display:block">
+        <div><strong>{{#str}}transfer_token_created_once, local_backupftp{{/str}}</strong></div>
+        <pre style="margin-bottom:0;">{{{token}}}</pre>
+        <div><small>{{#str}}transfer_token_created_once_desc, local_backupftp{{/str}}</small></div>
+    </label>
+</div>

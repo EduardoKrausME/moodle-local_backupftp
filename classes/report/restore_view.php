@@ -123,7 +123,7 @@ class restore_view extends table_sql {
         if ($expires > time()) {
             $text .= ' (' . format_time($expires - time()) . ')';
         } else {
-            $text .= ' (' . get_string('transfer_restore_token_expired', 'local_backupftp') . ')';
+            $text .= ' (' . get_string('transfer_token_expired', 'local_backupftp') . ')';
         }
 
         return s($text);

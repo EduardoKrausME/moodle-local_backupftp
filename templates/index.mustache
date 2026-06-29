@@ -29,11 +29,9 @@
 
 <div class="local-backupftp-index">
     <div class="alert alert-info mb-4">
-        <h3 class="h5 mb-2">Transferência de cursos entre Moodles</h3>
+        <h3 class="h5 mb-2">{{#str}}index_title, local_backupftp{{/str}}</h3>
         <p class="mb-0">
-            Este plugin ajuda a migrar cursos de uma instalação Moodle para outra com mais segurança.
-            O Moodle antigo gera os backups e libera o acesso por um token temporário. O Moodle novo consulta
-            a API, lista os arquivos disponíveis e coloca os restores em fila para execução pelo cron.
+            {{#str}}index_intro_desc, local_backupftp{{/str}}
         </p>
     </div>
 
@@ -41,14 +39,12 @@
         <div class="col-md-6 mb-3">
             <div class="card h-100">
                 <div class="card-body">
-                    <h3 class="h5">Backup dos cursos</h3>
+                    <h3 class="h5">{{#str}}index_backup_title, local_backupftp{{/str}}</h3>
                     <p>
-                        Use esta área para selecionar cursos e categorias e colocar a geração dos backups na fila.
-                        Os arquivos gerados podem ser salvos localmente e/ou enviados para o FTP, conforme as
-                        configurações do plugin.
+                        {{#str}}index_backup_desc, local_backupftp{{/str}}
                     </p>
                     <p class="mb-0">
-                        <a class="btn btn-primary" href="{{backupurl}}">Abrir tela de backup</a>
+                        <a class="btn btn-primary" href="{{{backupurl}}}">{{#str}}index_backup_button, local_backupftp{{/str}}</a>
                     </p>
                 </div>
             </div>
@@ -57,18 +53,17 @@
         <div class="col-md-6 mb-3">
             <div class="card h-100">
                 <div class="card-body">
-                    <h3 class="h5">Restore no Moodle novo</h3>
+                    <h3 class="h5">{{#str}}index_restore_title, local_backupftp{{/str}}</h3>
                     <p>
-                        Use esta tela para importar backups de outro Moodle. Informe o <code>wwwroot</code> antigo,
-                        o token e, opcionalmente, o IP da máquina antiga quando o domínio já tiver sido migrado
-                        para o novo servidor.
+                        {{#str}}index_restore_desc_before_wwwroot, local_backupftp{{/str}}
+                        <code>wwwroot</code>
+                        {{#str}}index_restore_desc_after_wwwroot, local_backupftp{{/str}}
                     </p>
                     <p>
-                        Depois da consulta, os arquivos remotos são colocados na fila de restauração. Assim, a
-                        migração pode continuar pelo cron sem depender da página aberta no navegador.
+                        {{#str}}index_restore_queue_desc, local_backupftp{{/str}}
                     </p>
                     <p class="mb-0">
-                        <a class="btn btn-primary" href="{{restoreurl}}">Abrir tela de restore</a>
+                        <a class="btn btn-primary" href="{{{restoreurl}}}">{{#str}}index_restore_button, local_backupftp{{/str}}</a>
                     </p>
                 </div>
             </div>
@@ -77,39 +72,42 @@
         <div class="col-md-12 mb-3">
             <div class="card h-100">
                 <div class="card-body">
-                    <h3 class="h5">Tokens de transferência</h3>
+                    <h3 class="h5">{{#str}}transfer_tokens, local_backupftp{{/str}}</h3>
                     <p>
-                        Crie tokens temporários para permitir que outro Moodle consulte cursos, categorias,
-                        backups e baixe os arquivos <code>.mbz</code>. O token não substitui login administrativo:
-                        ele deve ser compartilhado apenas durante a janela de migração.
+                        {{#str}}index_tokens_desc_before_mbz, local_backupftp{{/str}}
+                        <code>.mbz</code>.
+                        {{#str}}index_tokens_desc_after_mbz, local_backupftp{{/str}}
                     </p>
 
                     <div class="card-body">
-                        <h3 class="h5 mb-3">Fluxo recomendado</h3>
+                        <h3 class="h5 mb-3">{{#str}}index_recommended_flow_title, local_backupftp{{/str}}</h3>
                         <ol class="mb-0">
                             <li>
-                                No <strong>Moodle antigo</strong>, gere ou atualize os backups dos cursos que serão
-                                transferidos.
+                                {{#str}}index_flow_step_moodle, local_backupftp{{/str}}
+                                <strong>{{#str}}index_old_moodle, local_backupftp{{/str}}</strong>,
+                                {{#str}}index_flow_step1_after_old_moodle, local_backupftp{{/str}}
                             </li>
                             <li>
-                                Ainda no Moodle antigo, crie um <strong>token de transferência</strong>. Ele libera a
-                                API e o
-                                download dos arquivos <code>.mbz</code> somente enquanto estiver válido.
+                                {{#str}}index_flow_step2_before_token, local_backupftp{{/str}}
+                                <strong>{{#str}}index_transfer_token, local_backupftp{{/str}}</strong>.
+                                {{#str}}index_flow_step2_after_token_before_mbz, local_backupftp{{/str}}
+                                <code>.mbz</code>
+                                {{#str}}index_flow_step2_after_mbz, local_backupftp{{/str}}
                             </li>
                             <li>
-                                No <strong>Moodle novo</strong>, acesse a tela de restore, informe o
-                                <code>wwwroot</code> antigo,
-                                o token e, se necessário, o IP da máquina antiga.
+                                {{#str}}index_flow_step_moodle, local_backupftp{{/str}}
+                                <strong>{{#str}}index_new_moodle, local_backupftp{{/str}}</strong>,
+                                {{#str}}index_flow_step3_after_new_moodle_before_wwwroot, local_backupftp{{/str}}
+                                <code>wwwroot</code>
+                                {{#str}}index_flow_step3_after_wwwroot, local_backupftp{{/str}}
                             </li>
                             <li>
-                                Confira a lista retornada pela API e envie os arquivos para a fila. O cron fará o
-                                download e
-                                restaurará os cursos em segundo plano.
+                                {{#str}}index_flow_step4, local_backupftp{{/str}}
                             </li>
                         </ol>
                     </div>
                     <p class="mb-0">
-                        <a class="btn btn-primary" href="{{tokensurl}}">Gerenciar tokens</a>
+                        <a class="btn btn-primary" href="{{{tokensurl}}}">{{#str}}index_tokens_button, local_backupftp{{/str}}</a>
                     </p>
                 </div>
             </div>
@@ -117,27 +115,24 @@
     </div>
 
     <div class="alert alert-warning mb-4">
-        <h3 class="h6 mb-2">Atenção ao tempo do token</h3>
+        <h3 class="h6 mb-2">{{#str}}index_token_time_title, local_backupftp{{/str}}</h3>
         <p class="mb-0">
-            O token possui validade limitada, configurada nesta página de administração. Antes de iniciar uma
-            migração grande, confirme se o cron do Moodle novo está ativo e se o tempo restante do token é suficiente
-            para baixar todos os backups necessários.
+            {{#str}}index_token_time_desc, local_backupftp{{/str}}
         </p>
     </div>
 
     <div class="card">
         <div class="card-body">
-            <h3 class="h5 mb-3">Relatórios e acompanhamento</h3>
+            <h3 class="h5 mb-3">{{#str}}index_reports_title, local_backupftp{{/str}}</h3>
             <p>
-                Use os relatórios para acompanhar o que já foi colocado na fila, o que está em processamento,
-                quais backups foram concluídos e quais restores precisam de atenção.
+                {{#str}}index_reports_desc, local_backupftp{{/str}}
             </p>
             <div class="row">
                 <div class="col-md-6 mb-2">
-                    <a class="btn btn-outline-primary" href="{{backupreporturl}}">Ver relatório de backups</a>
+                    <a class="btn btn-outline-primary" href="{{{backupreporturl}}}">{{#str}}index_backup_report_button, local_backupftp{{/str}}</a>
                 </div>
                 <div class="col-md-6 mb-2">
-                    <a class="btn btn-outline-primary" href="{{restorereporturl}}">Ver relatório de restores</a>
+                    <a class="btn btn-outline-primary" href="{{{restorereporturl}}}">{{#str}}index_restore_report_button, local_backupftp{{/str}}</a>
                 </div>
             </div>
         </div>

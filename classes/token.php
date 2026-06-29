@@ -221,6 +221,77 @@ class token {
         );
     }
 
+
+
+    /**
+     * Try to detect the public IP address of this server.
+     *
+     * This value is only a helper for migrations where DNS has already been
+     * pointed to the new Moodle. It first tries small public IP services and
+     * falls back to the web server address when external calls are unavailable.
+     *
+     * @return string
+     */
+    public static function get_public_ip(): string {
+        global $CFG;
+
+        $services = [
+            'https://api.ipify.org',
+            'https://checkip.amazonaws.com',
+            'https://ifconfig.me/ip',
+        ];
+
+        if (function_exists('curl_init')) {
+            foreach ($services as $service) {
+                $ch = curl_init($service);
+                if (!$ch) {
+                    continue;
+                }
+
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+                curl_setopt($ch, CURLOPT_USERAGENT, 'local_backupftp_ip_detector/1.0');
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+
+                $body = curl_exec($ch);
+                $httpcode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                if ($httpcode >= 200 && $httpcode < 300 && is_string($body)) {
+                    $ip = trim($body);
+                    if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                        return $ip;
+                    }
+                }
+            }
+        }
+
+        $candidates = [];
+        if (!empty($_SERVER['SERVER_ADDR'])) {
+            $candidates[] = $_SERVER['SERVER_ADDR'];
+        }
+        if (!empty($CFG->wwwroot)) {
+            $host = parse_url($CFG->wwwroot, PHP_URL_HOST);
+            if (!empty($host)) {
+                $resolved = gethostbyname($host);
+                if ($resolved && $resolved !== $host) {
+                    $candidates[] = $resolved;
+                }
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            $candidate = trim((string)$candidate);
+            if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+
     /**
      * Generate plain token.
      *

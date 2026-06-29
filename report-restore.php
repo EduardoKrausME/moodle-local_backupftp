@@ -30,7 +30,7 @@ require_once(__DIR__ . "/classes/report/restore_view.php");
 
 $PAGE->set_context(context_system::instance());
 $PAGE->set_url('/local/backupftp/report-restore.php');
-$PAGE->set_pagelayout("base");
+$PAGE->set_pagelayout("admin");
 $PAGE->set_title(get_string('restore_report', 'local_backupftp'));
 $PAGE->set_heading(get_string('restore_report', 'local_backupftp'));
 

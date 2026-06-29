@@ -40,7 +40,7 @@ $context = context_system::instance();
 
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/backupftp/run-task.php'));
-$PAGE->set_pagelayout('base');
+$PAGE->set_pagelayout("admin");
 $PAGE->set_title(get_string('manual_cron_title', 'local_backupftp'));
 $PAGE->set_heading(get_string('manual_cron_title', 'local_backupftp'));
 
@@ -79,14 +79,10 @@ if ($action === 'backup' || $action === 'restore') {
     $raw = ob_get_clean();
     $text = trim(strip_tags($raw));
 
-    echo html_writer::tag('h3', get_string('cron', 'local_backupftp'));
-    echo html_writer::tag('pre', s($text), ['style' => 'max-height:70vh;overflow:auto;']);
-
-    echo html_writer::tag(
-        'p',
-        html_writer::link(new moodle_url('/local/backupftp/run-task.php'), get_string('back')),
-        ['style' => 'margin-top: 1rem;']
-    );
+    echo $OUTPUT->render_from_template('local_backupftp/run-task-result', [
+        'text' => $text,
+        'backurl' => (new moodle_url('/local/backupftp/run-task.php'))->out(false),
+    ]);
 
     echo $OUTPUT->footer();
     exit;

@@ -231,6 +231,68 @@ class api {
         ];
     }
 
+
+
+    /**
+     * List users for transfer.
+     *
+     * Password hashes are intentionally not exported. The destination Moodle
+     * creates or updates accounts and forces a password reset for manual users.
+     *
+     * @return array
+     * @throws \dml_exception
+     */
+    public static function list_users(): array {
+        global $DB;
+
+        $limit = self::get_limit(500, 5000);
+        $offset = self::get_offset();
+        $search = optional_param('search', '', PARAM_TEXT);
+
+        $params = [];
+        $where = [
+            'deleted = 0',
+            'id > 2',
+            "username <> 'guest'",
+        ];
+
+        if ($search !== '') {
+            $where[] = '(' . $DB->sql_like('username', ':searchusername', false) . ' OR ' .
+                $DB->sql_like('firstname', ':searchfirstname', false) . ' OR ' .
+                $DB->sql_like('lastname', ':searchlastname', false) . ' OR ' .
+                $DB->sql_like('email', ':searchemail', false) . ' OR ' .
+                $DB->sql_like('idnumber', ':searchidnumber', false) . ')';
+            $likesearch = '%' . $DB->sql_like_escape($search) . '%';
+            $params['searchusername'] = $likesearch;
+            $params['searchfirstname'] = $likesearch;
+            $params['searchlastname'] = $likesearch;
+            $params['searchemail'] = $likesearch;
+            $params['searchidnumber'] = $likesearch;
+        }
+
+        $fields = 'id, auth, confirmed, policyagreed, deleted, suspended, username, idnumber, firstname, lastname,
+                   email, emailstop, phone1, phone2, institution, department, address, city, country, lang,
+                   calendartype, theme, timezone, firstaccess, lastaccess, lastlogin, currentlogin,
+                   mailformat, maildigest, maildisplay, autosubscribe, trackforums, description,
+                   descriptionformat, imagealt, lastnamephonetic, firstnamephonetic, middlename, alternatename,
+                   timecreated, timemodified';
+
+        $records = $DB->get_records_select('user', implode(' AND ', $where), $params, 'id ASC', $fields, $offset, $limit);
+        $items = [];
+        foreach ($records as $record) {
+            $items[] = self::user_record_to_array($record);
+        }
+
+        return [
+            'count' => count($items),
+            'limit' => $limit,
+            'offset' => $offset,
+            'passwordincluded' => false,
+            'passwordnote' => 'Passwords and password hashes are not exported by this transfer API.',
+            'items' => $items,
+        ];
+    }
+
     /**
      * Convert course DB record to API array.
      *
@@ -280,6 +342,59 @@ class api {
         }
 
         return $data;
+    }
+
+
+
+    /**
+     * Convert user DB record to API array without password hashes or session secrets.
+     *
+     * @param stdClass $record User record.
+     * @return array
+     */
+    private static function user_record_to_array(stdClass $record): array {
+        return [
+            'id' => (int)$record->id,
+            'auth' => $record->auth ?? 'manual',
+            'confirmed' => isset($record->confirmed) ? (int)$record->confirmed : 1,
+            'policyagreed' => isset($record->policyagreed) ? (int)$record->policyagreed : 0,
+            'suspended' => isset($record->suspended) ? (int)$record->suspended : 0,
+            'username' => $record->username ?? '',
+            'idnumber' => $record->idnumber ?? '',
+            'firstname' => $record->firstname ?? '',
+            'lastname' => $record->lastname ?? '',
+            'email' => $record->email ?? '',
+            'emailstop' => isset($record->emailstop) ? (int)$record->emailstop : 0,
+            'phone1' => $record->phone1 ?? '',
+            'phone2' => $record->phone2 ?? '',
+            'institution' => $record->institution ?? '',
+            'department' => $record->department ?? '',
+            'address' => $record->address ?? '',
+            'city' => $record->city ?? '',
+            'country' => $record->country ?? '',
+            'lang' => $record->lang ?? '',
+            'calendartype' => $record->calendartype ?? '',
+            'theme' => $record->theme ?? '',
+            'timezone' => $record->timezone ?? '99',
+            'mailformat' => isset($record->mailformat) ? (int)$record->mailformat : 1,
+            'maildigest' => isset($record->maildigest) ? (int)$record->maildigest : 0,
+            'maildisplay' => isset($record->maildisplay) ? (int)$record->maildisplay : 2,
+            'autosubscribe' => isset($record->autosubscribe) ? (int)$record->autosubscribe : 1,
+            'trackforums' => isset($record->trackforums) ? (int)$record->trackforums : 0,
+            'description' => $record->description ?? '',
+            'descriptionformat' => isset($record->descriptionformat) ? (int)$record->descriptionformat : 1,
+            'imagealt' => $record->imagealt ?? '',
+            'lastnamephonetic' => $record->lastnamephonetic ?? '',
+            'firstnamephonetic' => $record->firstnamephonetic ?? '',
+            'middlename' => $record->middlename ?? '',
+            'alternatename' => $record->alternatename ?? '',
+            'firstaccess' => isset($record->firstaccess) ? (int)$record->firstaccess : 0,
+            'lastaccess' => isset($record->lastaccess) ? (int)$record->lastaccess : 0,
+            'lastlogin' => isset($record->lastlogin) ? (int)$record->lastlogin : 0,
+            'currentlogin' => isset($record->currentlogin) ? (int)$record->currentlogin : 0,
+            'timecreated' => isset($record->timecreated) ? (int)$record->timecreated : 0,
+            'timemodified' => isset($record->timemodified) ? (int)$record->timemodified : 0,
+        ];
     }
 
     /**
@@ -397,6 +512,8 @@ class api {
                 $params['token'] = $requesttoken;
             }
 
+            $origin = self::get_backup_file_origin($fileinfo->getFilename());
+
             $items[] = [
                 'filename' => $fileinfo->getFilename(),
                 'relativepath' => $relpath,
@@ -404,7 +521,7 @@ class api {
                 'size' => $fileinfo->getSize(),
                 'timemodified' => $fileinfo->getMTime(),
                 'downloadurl' => new moodle_url('/local/backupftp/download.php', $params),
-            ];
+            ] + $origin;
         }
 
         usort($items, static function(array $a, array $b): int {
@@ -412,6 +529,57 @@ class api {
         });
 
         return $items;
+    }
+
+    /**
+     * Try to identify the original course/category for an MBZ filename.
+     *
+     * Supports both this plugin's "ID - Fullname.mbz" naming option and Moodle's
+     * default "backup-moodle2-course-ID-...mbz" filename pattern.
+     *
+     * @param string $filename MBZ filename.
+     * @return array
+     * @throws \dml_exception
+     */
+    private static function get_backup_file_origin(string $filename): array {
+        global $DB;
+
+        $courseid = 0;
+        if (preg_match('/^(\d+)\s*-\s*.+\.mbz$/iu', $filename, $matches)) {
+            $courseid = (int)$matches[1];
+        } else if (preg_match('/backup-moodle2-course-(\d+)-/iu', $filename, $matches)) {
+            $courseid = (int)$matches[1];
+        }
+
+        $empty = [
+            'courseid' => null,
+            'coursefullname' => '',
+            'courseshortname' => '',
+            'categoryid' => null,
+            'categoryname' => '',
+        ];
+
+        if ($courseid <= 0) {
+            return $empty;
+        }
+
+        $sql = 'SELECT c.id, c.fullname, c.shortname, c.category, cc.name AS categoryname
+                  FROM {course} c
+             LEFT JOIN {course_categories} cc ON cc.id = c.category
+                 WHERE c.id = :courseid';
+        $course = $DB->get_record_sql($sql, ['courseid' => $courseid], IGNORE_MISSING);
+        if (!$course) {
+            $empty['courseid'] = $courseid;
+            return $empty;
+        }
+
+        return [
+            'courseid' => (int)$course->id,
+            'coursefullname' => $course->fullname ?? '',
+            'courseshortname' => $course->shortname ?? '',
+            'categoryid' => isset($course->category) ? (int)$course->category : null,
+            'categoryname' => $course->categoryname ?? '',
+        ];
     }
 
     /**

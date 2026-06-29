@@ -1,0 +1,76 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_backupftp/tokens_table
+
+    Example context (json):
+    {
+        "rows": [
+            {
+                "name": "Migration",
+                "status": "Active",
+                "created": "01/01/2026, 10:00",
+                "expires": "02/01/2026, 10:00",
+                "remaining": "1 day",
+                "lastused": "-",
+                "uses": 0,
+                "hasaction": true,
+                "revokeurl": "https://moodle.local/local/backupftp/tokens.php?action=revoke&id=1",
+                "confirmjson": "\"Confirm?\""
+            }
+        ]
+    }
+}}
+<table class="generaltable">
+    <thead>
+        <tr>
+            <th>{{#str}}name{{/str}}</th>
+            <th>{{#str}}status, local_backupftp{{/str}}</th>
+            <th>{{#str}}created_at, local_backupftp{{/str}}</th>
+            <th>{{#str}}transfer_token_expires, local_backupftp{{/str}}</th>
+            <th>{{#str}}transfer_token_remaining, local_backupftp{{/str}}</th>
+            <th>{{#str}}transfer_token_lastused, local_backupftp{{/str}}</th>
+            <th>{{#str}}transfer_token_uses, local_backupftp{{/str}}</th>
+            <th>{{#str}}actions{{/str}}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#rows}}
+            <tr>
+                <td>{{{name}}}</td>
+                <td>{{{status}}}</td>
+                <td>{{{created}}}</td>
+                <td>{{{expires}}}</td>
+                <td>{{{remaining}}}</td>
+                <td>{{{lastused}}}</td>
+                <td>{{{uses}}}</td>
+                <td>
+                    {{#hasaction}}
+                        <a href="{{{revokeurl}}}"
+                           class="btn btn-danger btn-sm"
+                           onclick="return confirm({{{confirmjson}}});">
+                            {{#str}}transfer_token_revoke, local_backupftp{{/str}}
+                        </a>
+                    {{/hasaction}}
+                    {{^hasaction}}
+                        -
+                    {{/hasaction}}
+                </td>
+            </tr>
+        {{/rows}}
+    </tbody>
+</table>

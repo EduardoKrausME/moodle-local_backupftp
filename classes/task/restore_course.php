@@ -250,7 +250,7 @@ class restore_course extends scheduled_task {
         if ($expires > 0) {
             $remaining = $expires - time();
             if ($remaining <= 0) {
-                $logs[] = get_string('transfer_restore_token_expired_before_restore', 'local_backupftp');
+                $logs[] = get_string('transfer_token_expired_before_restore', 'local_backupftp');
                 return ['status' => 'error', 'size' => 0];
             }
             $logs[] = get_string('transfer_restore_token_remaining_log', 'local_backupftp', format_time($remaining));

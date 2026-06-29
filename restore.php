@@ -39,7 +39,7 @@ $context = context_system::instance();
 
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/backupftp/restore.php'));
-$PAGE->set_pagelayout('base');
+$PAGE->set_pagelayout("admin");
 $PAGE->set_title(get_string('restore_courses_and_categories', 'local_backupftp'));
 $PAGE->set_heading(get_string('restore_courses_and_categories', 'local_backupftp'));
 $PAGE->requires->js_call_amd('local_backupftp/categoryselector', 'init');
@@ -48,13 +48,6 @@ require_login();
 require_capability('local/backupftp:manage', $context);
 
 echo $OUTPUT->header();
-
-// Handle POST: queue remote Moodle transfer backups.
-$remotequeue = optional_param('remotequeue', 0, PARAM_INT);
-if (!empty($remotequeue)) {
-    require_sesskey();
-    local_backupftp_queue_remote_transfer_restore();
-}
 
 // Config (used by list/render helpers below).
 $ftppasta = get_config('local_backupftp', 'ftppasta');
@@ -112,10 +105,41 @@ if (!empty($files)) {
     }
 }
 
+// Handle POST: save remote Moodle transfer form data in the user's session.
+$remotequeue = optional_param('remotequeue', 0, PARAM_INT);
+if (!empty($remotequeue)) {
+    require_sesskey();
+    local_backupftp_save_remote_transfer_restore_session();
+}
+
+// Handle POST: clear the remote Moodle transfer session data.
+$remoteclear = optional_param('remoteclear', 0, PARAM_INT);
+if (!empty($remoteclear)) {
+    require_sesskey();
+    local_backupftp_clear_remote_transfer_restore_session();
+}
+
+// Handle POST: queue only the checked remote Moodle backup files.
+$remoterestoremarked = optional_param('remoterestoremarked', 0, PARAM_INT);
+if (empty($remoteclear) && !empty($remoterestoremarked)) {
+    require_sesskey();
+    $selectedfiles = optional_param_array('remotefile', [], PARAM_RAW_TRIMMED);
+    local_backupftp_queue_remote_transfer_restore($selectedfiles);
+}
+
 // Info / links.
 echo $OUTPUT->render_from_template('local_backupftp/restore_info', []);
 
-echo local_backupftp_render_remote_transfer_form();
+$remotesession = local_backupftp_get_remote_transfer_restore_session();
+echo $OUTPUT->render_from_template('local_backupftp/remote_transfer_form', [
+    'actionurl' => $PAGE->url->out(false),
+    'sesskey' => sesskey(),
+    'remotewwwroot' => $remotesession['remotewwwroot'] ?? '',
+    'remoteip' => $remotesession['remoteip'] ?? '',
+    'remotetoken' => $remotesession['remotetoken'] ?? '',
+]);
+
+echo local_backupftp_render_remote_transfer_restore_summary();
 
 // Validate local path (avoid accidentally pointing to "/").
 if (strlen($localfilepath) < 4) {
@@ -134,21 +158,138 @@ echo $OUTPUT->render_from_template('local_backupftp/restore_form', [
 echo $OUTPUT->footer();
 
 /**
- * Queue remote Moodle backup files using the transfer API.
+ * Return the remote Moodle transfer data saved in the user's session.
+ *
+ * @return array
+ */
+function local_backupftp_get_remote_transfer_restore_session(): array {
+    global $SESSION;
+
+    $data = $SESSION->local_backupftp_remote_restore ?? [];
+    if (!is_array($data)) {
+        return [];
+    }
+
+    return [
+        'remotewwwroot' => (string)($data['remotewwwroot'] ?? ''),
+        'remoteip' => (string)($data['remoteip'] ?? ''),
+        'remotetoken' => (string)($data['remotetoken'] ?? ''),
+        'timecreated' => (int)($data['timecreated'] ?? 0),
+    ];
+}
+
+/**
+ * Save remote Moodle transfer form data in the user's session.
  *
  * @return void
  */
-function local_backupftp_queue_remote_transfer_restore(): void {
-    global $DB, $OUTPUT;
+function local_backupftp_save_remote_transfer_restore_session(): void {
+    global $SESSION, $OUTPUT;
 
     $remotewwwroot = optional_param('remotewwwroot', '', PARAM_RAW_TRIMMED);
     $remoteip = optional_param('remoteip', '', PARAM_RAW_TRIMMED);
     $remotetoken = optional_param('remotetoken', '', PARAM_RAW_TRIMMED);
 
     try {
-        $remotewwwroot = transfer_client::clean_wwwroot($remotewwwroot);
-        $remoteip = transfer_client::clean_ip($remoteip);
-        $remotetoken = transfer_client::clean_token($remotetoken);
+        $SESSION->local_backupftp_remote_restore = [
+            'remotewwwroot' => transfer_client::clean_wwwroot($remotewwwroot),
+            'remoteip' => transfer_client::clean_ip($remoteip),
+            'remotetoken' => transfer_client::clean_token($remotetoken),
+            'timecreated' => time(),
+        ];
+
+        echo $OUTPUT->notification(get_string('transfer_restore_session_saved', 'local_backupftp'), 'notifysuccess');
+    } catch (Throwable $e) {
+        unset($SESSION->local_backupftp_remote_restore);
+        echo $OUTPUT->notification(s($e->getMessage()), 'notifyproblem');
+    }
+}
+
+/**
+ * Clear remote Moodle transfer form data from the user's session.
+ *
+ * @return void
+ */
+function local_backupftp_clear_remote_transfer_restore_session(): void {
+    global $SESSION, $OUTPUT;
+
+    unset($SESSION->local_backupftp_remote_restore);
+    echo $OUTPUT->notification(get_string('transfer_restore_session_cleared', 'local_backupftp'), 'notifysuccess');
+}
+
+/**
+ * Render the remote Moodle backup summary using the data saved in session.
+ *
+ * @return string
+ */
+function local_backupftp_render_remote_transfer_restore_summary(): string {
+    global $OUTPUT, $PAGE;
+
+    $sessiondata = local_backupftp_get_remote_transfer_restore_session();
+    if (empty($sessiondata['remotewwwroot']) || empty($sessiondata['remotetoken'])) {
+        return '';
+    }
+
+    try {
+        $response = transfer_client::fetch_backups(
+            $sessiondata['remotewwwroot'],
+            $sessiondata['remoteip'],
+            $sessiondata['remotetoken']
+        );
+        $tokenexpires = transfer_client::get_token_expires_from_response($response);
+        $files = $response['data']['files'] ?? [];
+
+        if (!is_array($files) || empty($files)) {
+            return $OUTPUT->notification(get_string('transfer_restore_no_backups', 'local_backupftp'), 'notifyproblem');
+        }
+
+        return $OUTPUT->render_from_template(
+            'local_backupftp/remote_restore_summary',
+            [
+                'actionurl' => $PAGE->url->out(false),
+                'sesskey' => sesskey(),
+                'hascounter' => $tokenexpires > 0,
+                'countdown' => $tokenexpires > 0 ? local_backupftp_render_countdown($tokenexpires) : '',
+                'restoreurl' => new moodle_url('/local/backupftp/report-restore.php'),
+            ] + local_backupftp_render_remote_files_table($files)
+        );
+    } catch (Throwable $e) {
+        return $OUTPUT->notification(s($e->getMessage()), 'notifyproblem');
+    }
+}
+
+/**
+ * Queue selected remote Moodle backup files using the transfer API.
+ *
+ * @param array $selectedfiles Selected remote relative paths.
+ * @return void
+ */
+function local_backupftp_queue_remote_transfer_restore(array $selectedfiles): void {
+    global $DB, $OUTPUT;
+
+    $sessiondata = local_backupftp_get_remote_transfer_restore_session();
+    if (empty($sessiondata['remotewwwroot']) || empty($sessiondata['remotetoken'])) {
+        echo $OUTPUT->notification(get_string('transfer_restore_missing_remote_data', 'local_backupftp'), 'notifyproblem');
+        return;
+    }
+
+    $selected = [];
+    foreach ($selectedfiles as $selectedfile) {
+        $relativepath = transfer_client::clean_backup_file((string)$selectedfile);
+        if ($relativepath !== '') {
+            $selected[$relativepath] = true;
+        }
+    }
+
+    if (empty($selected)) {
+        echo $OUTPUT->notification(get_string('transfer_restore_no_selection', 'local_backupftp'), 'notifyproblem');
+        return;
+    }
+
+    try {
+        $remotewwwroot = $sessiondata['remotewwwroot'];
+        $remoteip = $sessiondata['remoteip'];
+        $remotetoken = $sessiondata['remotetoken'];
 
         $response = transfer_client::fetch_backups($remotewwwroot, $remoteip, $remotetoken);
         $tokenexpires = transfer_client::get_token_expires_from_response($response);
@@ -162,7 +303,6 @@ function local_backupftp_queue_remote_transfer_restore(): void {
         $queued = 0;
         $updated = 0;
         $ignored = 0;
-        $rows = [];
 
         foreach ($files as $file) {
             if (!is_array($file)) {
@@ -170,15 +310,13 @@ function local_backupftp_queue_remote_transfer_restore(): void {
                 continue;
             }
 
-            $relativepath = transfer_client::clean_backup_file((string) ($file['relativepath'] ?? ''));
-            if ($relativepath === '') {
-                $ignored++;
+            $relativepath = transfer_client::clean_backup_file((string)($file['relativepath'] ?? ''));
+            if ($relativepath === '' || empty($selected[$relativepath])) {
                 continue;
             }
 
-            $filename = (string) ($file['filename'] ?? basename($relativepath));
-            $filesize = (int) ($file['size'] ?? 0);
-            $timemodified = (int) ($file['timemodified'] ?? 0);
+            $filesize = (int)($file['size'] ?? 0);
+            $timemodified = (int)($file['timemodified'] ?? 0);
 
             $existing = $DB->get_record_select(
                 'local_backupftp_restore',
@@ -197,7 +335,7 @@ function local_backupftp_queue_remote_transfer_restore(): void {
                 $existing->sourceexpires = $tokenexpires;
                 $existing->sourcefilesize = $filesize;
                 $existing->sourcetimemodified = $timemodified;
-                if ($existing->status === 'error' || (int) $existing->sourceexpires < time()) {
+                if ($existing->status === 'error' || (int)$existing->sourceexpires < time()) {
                     $existing->status = 'waiting';
                     $existing->logs = '';
                     $existing->timestart = 0;
@@ -206,7 +344,7 @@ function local_backupftp_queue_remote_transfer_restore(): void {
                 $DB->update_record('local_backupftp_restore', $existing);
                 $updated++;
             } else {
-                $data = (object) [
+                $data = (object)[
                     'remotefile' => $relativepath,
                     'source' => 'transfer',
                     'sourcewwwroot' => $remotewwwroot,
@@ -224,8 +362,19 @@ function local_backupftp_queue_remote_transfer_restore(): void {
                 $DB->insert_record('local_backupftp_restore', $data);
                 $queued++;
             }
+        }
 
-            $rows[] = [s($filename), s($relativepath), display_size($filesize)];
+        if (($queued + $updated) === 0) {
+            echo $OUTPUT->notification(get_string('transfer_restore_no_selection', 'local_backupftp'), 'notifyproblem');
+            return;
+        }
+
+        $userssummary = '';
+        try {
+            $usersresult = local_backupftp_restore_remote_users($remotewwwroot, $remoteip, $remotetoken);
+            $userssummary = get_string('transfer_restore_users_summary', 'local_backupftp', $usersresult);
+        } catch (Throwable $userexception) {
+            $userssummary = get_string('transfer_restore_users_failed', 'local_backupftp', s($userexception->getMessage()));
         }
 
         $summary = get_string('transfer_restore_queue_summary', 'local_backupftp', [
@@ -234,120 +383,313 @@ function local_backupftp_queue_remote_transfer_restore(): void {
             'ignored' => $ignored,
         ]);
 
-        $html = html_writer::tag('p', $summary);
-        if ($tokenexpires > 0) {
-            $html .= html_writer::tag(
-                'p', get_string('transfer_restore_token_counter', 'local_backupftp') . ' ' .
-                local_backupftp_render_countdown($tokenexpires)
-            );
+        if ($userssummary !== '') {
+            $summary .= html_writer::tag('div', $userssummary, ['class' => 'mt-2']);
         }
-        $html .= local_backupftp_render_remote_files_table($rows);
 
-        echo $OUTPUT->notification($html, 'notifysuccess');
+        echo $OUTPUT->notification($summary, 'notifysuccess');
     } catch (Throwable $e) {
         echo $OUTPUT->notification(s($e->getMessage()), 'notifyproblem');
     }
 }
 
 /**
- * Render remote transfer form.
+ * Restore users from a remote Moodle transfer API response.
  *
- * @return string
+ * Password hashes are not imported. Newly created manual users receive a random
+ * local password and are forced to change it before logging in.
+ *
+ * @param string $remotewwwroot Remote wwwroot.
+ * @param string $remoteip Optional remote server IP.
+ * @param string $remotetoken Transfer token.
+ * @return stdClass Summary object for language strings.
+ * @throws \moodle_exception
  */
-function local_backupftp_render_remote_transfer_form(): string {
-    global $PAGE;
+function local_backupftp_restore_remote_users(string $remotewwwroot, string $remoteip, string $remotetoken): stdClass {
+    global $CFG;
 
-    $html = html_writer::start_div('card mb-4');
-    $html .= html_writer::start_div('card-body');
-    $html .= html_writer::tag('h3', get_string('transfer_restore_title', 'local_backupftp'));
-    $html .= html_writer::tag('p', get_string('transfer_restore_desc', 'local_backupftp'));
+    require_once($CFG->dirroot . '/user/lib.php');
 
-    $html .= html_writer::start_tag('form', ['method' => 'post', 'action' => $PAGE->url->out(false)]);
-    $html .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
-    $html .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'remotequeue', 'value' => 1]);
+    $response = transfer_client::fetch_users($remotewwwroot, $remoteip, $remotetoken);
+    $users = $response['data']['items'] ?? [];
 
-    $html .= html_writer::start_div('form-group');
-    $html .= html_writer::tag('label', get_string('transfer_restore_wwwroot', 'local_backupftp'), ['for' => 'id_remotewwwroot']);
-    $html .= html_writer::empty_tag('input', [
-        'type' => 'url',
-        'name' => 'remotewwwroot',
-        'id' => 'id_remotewwwroot',
-        'class' => 'form-control',
-        'required' => 'required',
-        'placeholder' => 'https://moodle-antigo.exemplo.com.br',
-    ]);
-    $html .= html_writer::tag(
-        'small', get_string('transfer_restore_wwwroot_desc', 'local_backupftp'), ['class' => 'form-text text-muted']
-    );
-    $html .= html_writer::end_div();
+    $summary = (object) [
+        'created' => 0,
+        'updated' => 0,
+        'ignored' => 0,
+        'errors' => 0,
+    ];
 
-    $html .= html_writer::start_div('form-group');
-    $html .= html_writer::tag('label', get_string('transfer_restore_ip', 'local_backupftp'), ['for' => 'id_remoteip']);
-    $html .= html_writer::empty_tag('input', [
-        'type' => 'text',
-        'name' => 'remoteip',
-        'id' => 'id_remoteip',
-        'class' => 'form-control',
-        'placeholder' => '192.0.2.10',
-    ]);
-    $html .= html_writer::tag(
-        'small', get_string('transfer_restore_ip_desc', 'local_backupftp'), ['class' => 'form-text text-muted']
-    );
-    $html .= html_writer::end_div();
+    if (!is_array($users)) {
+        return $summary;
+    }
 
-    $html .= html_writer::start_div('form-group');
-    $html .= html_writer::tag('label', get_string('transfer_restore_token', 'local_backupftp'), ['for' => 'id_remotetoken']);
-    $html .= html_writer::empty_tag('input', [
-        'type' => 'text',
-        'name' => 'remotetoken',
-        'id' => 'id_remotetoken',
-        'class' => 'form-control',
-        'required' => 'required',
-        'autocomplete' => 'off',
-    ]);
-    $html .= html_writer::tag(
-        'small', get_string('transfer_restore_token_desc', 'local_backupftp'), ['class' => 'form-text text-muted']
-    );
-    $html .= html_writer::end_div();
+    foreach ($users as $remoteuser) {
+        try {
+            if (!is_array($remoteuser)) {
+                $summary->ignored++;
+                continue;
+            }
 
-    $html .= html_writer::empty_tag('input', [
-        'type' => 'submit',
-        'class' => 'btn btn-primary',
-        'value' => get_string('transfer_restore_queue_button', 'local_backupftp'),
-    ]);
+            $user = local_backupftp_prepare_remote_user($remoteuser);
+            if (!$user) {
+                $summary->ignored++;
+                continue;
+            }
 
-    $html .= html_writer::end_tag('form');
-    $html .= html_writer::end_div();
-    $html .= html_writer::end_div();
+            $existing = local_backupftp_find_existing_user($user);
+            if ($existing) {
+                $user->id = (int) $existing->id;
+                unset($user->password);
+                user_update_user($user, false, false);
+                $summary->updated++;
+            } else {
+                $user->password = random_string(32);
+                $userid = user_create_user($user, true, false);
+                if ($user->auth === 'manual') {
+                    set_user_preference('auth_forcepasswordchange', 1, $userid);
+                }
+                $summary->created++;
+            }
+        } catch (Throwable $e) {
+            $summary->errors++;
+        }
+    }
 
-    return $html;
+    return $summary;
 }
 
 /**
- * Render a small table with queued remote files.
+ * Prepare one remote user for local create/update.
  *
- * @param array $rows Table rows.
+ * @param array $remoteuser Remote API user.
+ * @return stdClass|null
+ */
+function local_backupftp_prepare_remote_user(array $remoteuser): ?stdClass {
+    global $CFG;
+
+    $oldid = (int) ($remoteuser['id'] ?? 0);
+    $username = clean_param((string) ($remoteuser['username'] ?? ''), PARAM_USERNAME);
+    $username = trim(core_text::strtolower($username));
+
+    if ($oldid <= 2 || $username === '' || in_array($username, ['guest', 'admin'], true)) {
+        return null;
+    }
+
+    $auth = clean_param((string) ($remoteuser['auth'] ?? 'manual'), PARAM_PLUGIN);
+    if ($auth === '') {
+        $auth = 'manual';
+    }
+    $enabledauths = get_enabled_auth_plugins();
+    if (!in_array($auth, $enabledauths, true)) {
+        $auth = 'manual';
+    }
+
+    $email = trim((string) ($remoteuser['email'] ?? ''));
+    if (!validate_email($email)) {
+        $email = 'migrated-user-' . $oldid . '@example.invalid';
+        $remoteuser['emailstop'] = 1;
+    }
+
+    $user = (object) [
+        'auth' => $auth,
+        'confirmed' => (int) ($remoteuser['confirmed'] ?? 1),
+        'policyagreed' => (int) ($remoteuser['policyagreed'] ?? 0),
+        'deleted' => 0,
+        'suspended' => (int) ($remoteuser['suspended'] ?? 0),
+        'mnethostid' => $CFG->mnet_localhost_id,
+        'username' => $username,
+        'idnumber' => local_backupftp_limit_text((string) ($remoteuser['idnumber'] ?? ''), 255),
+        'firstname' => local_backupftp_limit_text((string) ($remoteuser['firstname'] ?? $username), 100),
+        'lastname' => local_backupftp_limit_text((string) ($remoteuser['lastname'] ?? '-'), 100),
+        'email' => local_backupftp_limit_text($email, 100),
+        'emailstop' => (int) ($remoteuser['emailstop'] ?? 0),
+        'phone1' => local_backupftp_limit_text((string) ($remoteuser['phone1'] ?? ''), 20),
+        'phone2' => local_backupftp_limit_text((string) ($remoteuser['phone2'] ?? ''), 20),
+        'institution' => local_backupftp_limit_text((string) ($remoteuser['institution'] ?? ''), 255),
+        'department' => local_backupftp_limit_text((string) ($remoteuser['department'] ?? ''), 255),
+        'address' => local_backupftp_limit_text((string) ($remoteuser['address'] ?? ''), 255),
+        'city' => local_backupftp_limit_text((string) ($remoteuser['city'] ?? ''), 120),
+        'country' => local_backupftp_limit_text((string) ($remoteuser['country'] ?? ''), 2),
+        'lang' => local_backupftp_limit_text((string) ($remoteuser['lang'] ?? current_language()), 30),
+        'calendartype' => local_backupftp_limit_text((string) ($remoteuser['calendartype'] ?? ''), 30),
+        'theme' => local_backupftp_limit_text((string) ($remoteuser['theme'] ?? ''), 50),
+        'timezone' => local_backupftp_limit_text((string) ($remoteuser['timezone'] ?? '99'), 100),
+        'mailformat' => (int) ($remoteuser['mailformat'] ?? 1),
+        'maildigest' => (int) ($remoteuser['maildigest'] ?? 0),
+        'maildisplay' => (int) ($remoteuser['maildisplay'] ?? 2),
+        'autosubscribe' => (int) ($remoteuser['autosubscribe'] ?? 1),
+        'trackforums' => (int) ($remoteuser['trackforums'] ?? 0),
+        'description' => (string) ($remoteuser['description'] ?? ''),
+        'descriptionformat' => (int) ($remoteuser['descriptionformat'] ?? FORMAT_HTML),
+        'imagealt' => local_backupftp_limit_text((string) ($remoteuser['imagealt'] ?? ''), 255),
+        'lastnamephonetic' => local_backupftp_limit_text((string) ($remoteuser['lastnamephonetic'] ?? ''), 255),
+        'firstnamephonetic' => local_backupftp_limit_text((string) ($remoteuser['firstnamephonetic'] ?? ''), 255),
+        'middlename' => local_backupftp_limit_text((string) ($remoteuser['middlename'] ?? ''), 255),
+        'alternatename' => local_backupftp_limit_text((string) ($remoteuser['alternatename'] ?? ''), 255),
+    ];
+
+    if ($user->firstname === '') {
+        $user->firstname = $username;
+    }
+    if ($user->lastname === '') {
+        $user->lastname = '-';
+    }
+    if ($user->confirmed !== 1) {
+        $user->confirmed = 1;
+    }
+
+    return $user;
+}
+
+/**
+ * Find an existing local user that matches a remote user.
+ *
+ * @param stdClass $user Prepared user.
+ * @return stdClass|false
+ * @throws \dml_exception
+ */
+function local_backupftp_find_existing_user(stdClass $user) {
+    global $CFG, $DB;
+
+    $params = ['username' => $user->username, 'mnethostid' => $CFG->mnet_localhost_id];
+    $existing = $DB->get_record_select(
+        'user',
+        'username = :username AND mnethostid = :mnethostid AND deleted = 0', $params, '*', IGNORE_MULTIPLE
+    );
+    if ($existing) {
+        return $existing;
+    }
+
+    if (!empty($user->idnumber)) {
+        $existing = $DB->get_record_select(
+            'user', 'idnumber = :idnumber AND deleted = 0',
+            ['idnumber' => $user->idnumber], '*', IGNORE_MULTIPLE
+        );
+        if ($existing) {
+            return $existing;
+        }
+    }
+
+    if (!empty($user->email)) {
+        $existing = $DB->get_record_select(
+            'user', 'email = :email AND deleted = 0',
+            ['email' => $user->email], '*', IGNORE_MULTIPLE
+        );
+        if ($existing) {
+            return $existing;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Trim DB text fields safely.
+ *
+ * @param string $value Raw value.
+ * @param int $maxlength Max length.
  * @return string
  */
-function local_backupftp_render_remote_files_table(array $rows): string {
-    if (empty($rows)) {
-        return '';
+function local_backupftp_limit_text(string $value, int $maxlength): string {
+    $value = trim(str_replace(chr(0), '', $value));
+    if (core_text::strlen($value) > $maxlength) {
+        $value = core_text::substr($value, 0, $maxlength);
     }
 
-    $table = new html_table();
-    $table->head = [
-        get_string('filename'),
-        get_string('remote_file', 'local_backupftp'),
-        get_string('file_size_label', 'local_backupftp'),
+    return $value;
+}
+
+/**
+ * Guess remote file origin from filename/path when the remote API does not send metadata yet.
+ *
+ * @param string $filename MBZ filename.
+ * @param string $relativepath Remote relative backup path.
+ * @return array
+ */
+function local_backupftp_guess_remote_file_origin(string $filename, string $relativepath): array {
+    $courseid = 0;
+    $coursefullname = '';
+
+    if (preg_match('/^(\d+)\s*-\s*(.+)\.mbz$/iu', $filename, $matches)) {
+        $courseid = (int)$matches[1];
+        $coursefullname = trim($matches[2]);
+    } else if (preg_match('/backup-moodle2-course-(\d+)-([^\/]+?)-\d{8,}/iu', $filename, $matches)) {
+        $courseid = (int)$matches[1];
+        $coursefullname = trim(str_replace(['_', '-'], ' ', $matches[2]));
+    } else if (preg_match('/backup-moodle2-course-(\d+)-/iu', $filename, $matches)) {
+        $courseid = (int)$matches[1];
+    }
+
+    $categoryname = '';
+    $pathparts = explode('/', $relativepath);
+    array_pop($pathparts);
+    if (!empty($pathparts)) {
+        $categoryname = implode(' / ', array_map('trim', $pathparts));
+    }
+
+    return [
+        'courseid' => $courseid,
+        'coursefullname' => $coursefullname,
+        'categoryname' => $categoryname,
     ];
-    $table->data = array_slice($rows, 0, 50);
+}
 
-    $html = html_writer::table($table);
-    if (count($rows) > 50) {
-        $html .= html_writer::tag('p', get_string('transfer_restore_table_limited', 'local_backupftp', count($rows)));
+/**
+ * Render a small table with remote files returned by the transfer API.
+ *
+ * @param array $files Remote API file rows.
+ * @return array
+ * @throws \coding_exception
+ */
+function local_backupftp_render_remote_files_table(array $files): array {
+    if (empty($files)) {
+        return [];
     }
 
-    return $html;
+    $tablerows = [];
+    foreach ($files as $file) {
+        if (!is_array($file)) {
+            continue;
+        }
+
+        $relativepath = transfer_client::clean_backup_file((string)($file['relativepath'] ?? ''));
+        if ($relativepath === '') {
+            continue;
+        }
+
+        $filename = (string)($file['filename'] ?? basename($relativepath));
+        $courseid = (int)($file['courseid'] ?? 0);
+        $coursefullname = (string)($file['coursefullname'] ?? ($file['coursename'] ?? ''));
+        $categoryid = (int)($file['categoryid'] ?? 0);
+        $categoryname = (string)($file['categoryname'] ?? '');
+
+        if ($courseid <= 0 && $coursefullname === '') {
+            $guessedorigin = local_backupftp_guess_remote_file_origin($filename, $relativepath);
+            $courseid = (int)$guessedorigin['courseid'];
+            $coursefullname = $guessedorigin['coursefullname'];
+            if ($categoryname === '') {
+                $categoryname = $guessedorigin['categoryname'];
+            }
+        }
+
+        $tablerows[] = [
+            'filename' => $filename,
+            'relativepath' => $relativepath,
+            'filesize' => display_size((int)($file['size'] ?? 0)),
+            'courseid' => $courseid > 0 ? $courseid : '',
+            'coursefullname' => $coursefullname,
+            'hascourse' => $courseid > 0 || $coursefullname !== '',
+            'categoryid' => $categoryid > 0 ? $categoryid : '',
+            'categoryname' => $categoryname,
+            'hascategory' => $categoryid > 0 || $categoryname !== '',
+        ];
+    }
+
+    return [
+        'tablerows' => $tablerows,
+        'limited' => false,
+    ];
 }
 
 /**
@@ -355,43 +697,24 @@ function local_backupftp_render_remote_files_table(array $rows): string {
  *
  * @param int $timeexpires Expiry timestamp.
  * @return string
+ * @throws \coding_exception
  */
 function local_backupftp_render_countdown(int $timeexpires): string {
+    global $OUTPUT;
+
     $id = 'lbf_countdown_' . uniqid();
     $remaining = max(0, $timeexpires - time());
-
-    $html = html_writer::tag('span', format_time($remaining), [
-        'id' => $id,
-        'class' => 'badge badge-info',
-        'data-expires' => $timeexpires,
-    ]);
-
-    $html .= html_writer::script(
-        "(function(){
-        var el = document.getElementById('" . $id . "');
-        if (!el) { return; }
-        function pad(n){ return n < 10 ? '0' + n : '' + n; }
-        function tick(){
-            var diff = parseInt(el.getAttribute('data-expires'), 10) - Math.floor(Date.now() / 1000);
-            if (diff <= 0) {
-                el.textContent = '" . addslashes(get_string('transfer_restore_token_expired', 'local_backupftp')) . "';
-                el.className = 'badge badge-danger';
-                return;
-            }
-            var days = Math.floor(diff / 86400);
-            diff = diff % 86400;
-            var hours = Math.floor(diff / 3600);
-            diff = diff % 3600;
-            var minutes = Math.floor(diff / 60);
-            var seconds = diff % 60;
-            el.textContent = (days > 0 ? days + 'd ' : '') + pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
-        }
-        tick();
-        window.setInterval(tick, 1000);
-    })();"
+    $expiredjson = json_encode(
+        get_string('transfer_token_expired', 'local_backupftp'),
+        JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
     );
 
-    return $html;
+    return $OUTPUT->render_from_template('local_backupftp/countdown', [
+        'id' => $id,
+        'remaining' => format_time($remaining),
+        'timeexpires' => $timeexpires,
+        'expiredjson' => $expiredjson,
+    ]);
 }
 
 /**
@@ -448,6 +771,10 @@ function local_backupftp_is_allowed_restore_target(
 
 /**
  * List files from FTP source and return HTML for the restore form.
+ *
+ * @throws \coding_exception
+ * @throws \dml_exception
+ * @throws \Exception
  */
 function local_backupftp_list_filesfromftp(string $directory): string {
     global $DB, $CFG, $OUTPUT, $ftppasta;
@@ -528,20 +855,11 @@ function local_backupftp_list_filesfromftp(string $directory): string {
 
         $remotefile = rtrim($directory, '/') . '/' . $file['name'];
 
-        $restoretext = '';
-        $showinput = html_writer::empty_tag('input', [
-            'type' => 'checkbox',
-            'name' => 'file[]',
-            'value' => $remotefile,
-        ]);
-
+        $alreadyadded = false;
+        $alreadytext = '';
         if ($restore = $DB->get_record('local_backupftp_restore', ['remotefile' => $remotefile], '*', IGNORE_MULTIPLE)) {
-            $restoretext .= html_writer::empty_tag('br') . ' / ' .
-                html_writer::tag(
-                    'span',
-                    get_string('already_added_status', 'local_backupftp', ['status' => s($restore->status)]),
-                    ['style' => 'color:#3F51B5']
-                );
+            $alreadyadded = true;
+            $alreadytext = get_string('already_added_status', 'local_backupftp', ['status' => $restore->status]);
         }
 
         $filesize = get_string('file_size', 'local_backupftp', [
@@ -550,11 +868,12 @@ function local_backupftp_list_filesfromftp(string $directory): string {
         $createdontime = get_string('created_on_time', 'local_backupftp', ['modify' => s($file['modify'])]);
 
         $internalreturn .= $OUTPUT->render_from_template('local_backupftp/restore_p', [
-            'showinput' => $showinput,
+            'remotefile' => $remotefile,
             'filename' => $file['name'],
             'filesize' => $filesize,
             'createdontime' => $createdontime,
-            'restoretext' => $restoretext,
+            'alreadyadded' => $alreadyadded,
+            'alreadytext' => $alreadytext,
         ]);
     }
 
@@ -571,6 +890,9 @@ function local_backupftp_list_filesfromftp(string $directory): string {
 
 /**
  * List files from local filesystem source and return HTML for the restore form.
+ *
+ * @throws \coding_exception
+ * @throws \Exception
  */
 function local_backupftp_list_filesfromlocal(string $directory): string {
     global $DB, $OUTPUT, $localfilepath;
@@ -635,24 +957,16 @@ function local_backupftp_list_filesfromlocal(string $directory): string {
 
         $remotefile = $file['name'];
 
-        $restoretext = '';
-        $showinput = html_writer::empty_tag('input', [
-            'type' => 'checkbox',
-            'name' => 'file[]',
-            'value' => $remotefile,
-        ]);
+        $alreadyadded = false;
+        $alreadytext = '';
 
         $sql = "
             SELECT * 
               FROM {local_backupftp_restore}
              WHERE remotefile = :remotefile";
         if ($restore = $DB->get_record_sql($sql, ['remotefile' => $remotefile], IGNORE_MULTIPLE)) {
-            $restoretext .= html_writer::empty_tag('br') . ' / ' .
-                html_writer::tag(
-                    'span',
-                    get_string('already_added_status', 'local_backupftp', ['status' => s($restore->status)]),
-                    ['style' => 'color:#3F51B5']
-                );
+            $alreadyadded = true;
+            $alreadytext = get_string('already_added_status', 'local_backupftp', ['status' => $restore->status]);
         }
 
         $displayname = basename($file['name']);
@@ -663,11 +977,12 @@ function local_backupftp_list_filesfromlocal(string $directory): string {
         $createdontime = get_string('created_on_time', 'local_backupftp', ['modify' => s($file['modify'])]);
 
         $internalreturn .= $OUTPUT->render_from_template('local_backupftp/restore_p', [
-            'showinput' => $showinput,
+            'remotefile' => $remotefile,
             'filename' => $displayname,
             'filesize' => $filesize,
             'createdontime' => $createdontime,
-            'restoretext' => $restoretext,
+            'alreadyadded' => $alreadyadded,
+            'alreadytext' => $alreadytext,
         ]);
     }
 

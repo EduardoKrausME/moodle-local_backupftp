@@ -23,6 +23,7 @@
  *   /local/backupftp/api.php?action=categories&token=TOKEN
  *   /local/backupftp/api.php?action=category&id=3&token=TOKEN
  *   /local/backupftp/api.php?action=backups&token=TOKEN
+ *   /local/backupftp/api.php?action=users&token=TOKEN
  *
  * @package   local_backupftp
  * @copyright 2026 Eduardo Kraus {@link https://eduardokraus.com}
@@ -58,6 +59,7 @@ try {
                     'categories',
                     'category',
                     'backups',
+                    'users',
                 ],
                 'auth' => 'Use token=TOKEN or Authorization: Bearer TOKEN',
                 'tokenlifetime' => token::get_lifetime(),
@@ -82,6 +84,10 @@ try {
 
         case 'backups':
             local_backupftp_api_response(api::list_backups($requesttoken), $tokenrecord);
+            break;
+
+        case 'users':
+            local_backupftp_api_response(api::list_users(), $tokenrecord);
             break;
 
         default:

@@ -15,22 +15,37 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template local_backupftp/restore_fieldset
+    @template local_backupftp/backup_category_node
 
     Example context (json):
     {
-        "unique": "Aa123",
-        "infocategori_link": "title",
-        "data": "rows"
+        "categoryid": 10,
+        "inputid": "id-lbfcat_123",
+        "name": "Category",
+        "coursecount": 4,
+        "statuses": [{"label": "waiting: 2"}],
+        "haschildren": true,
+        "children": "<div>...</div>"
     }
 }}
-
-<div id="id-{{{unique}}}" class="local-backupftp-tree-node" data-region="local-backupftp-node">
+<div class="local-backupftp-tree-node" data-region="local-backupftp-node">
     <div class="local-backupftp-tree-card">
         <div class="local-backupftp-tree-header">
             <div class="local-backupftp-tree-title">
+                <input type="checkbox"
+                       id="{{{inputid}}}"
+                       name="category[{{{categoryid}}}]"
+                       value="{{{categoryid}}}">
                 <span class="local-backupftp-tree-icon" aria-hidden="true">▣</span>
-                <h5>{{{infocategori_link}}}</h5>
+                <div>
+                    <h4><label for="{{{inputid}}}">{{{name}}}</label></h4>
+                    <div class="local-backupftp-tree-meta">
+                        <span class="badge badge-secondary">{{#str}}courses, local_backupftp{{/str}}: {{{coursecount}}}</span>
+                        {{#statuses}}
+                            <span class="badge badge-info">{{{label}}}</span>
+                        {{/statuses}}
+                    </div>
+                </div>
             </div>
 
             <div class="local-backupftp-tree-actions">
@@ -47,8 +62,12 @@
             </div>
         </div>
 
-        <div class="local-backupftp-tree-body">
-            {{{data}}}
-        </div>
+        {{#haschildren}}
+            <div class="local-backupftp-tree-body">
+                <div class="local-backupftp-tree-children">
+                    {{{children}}}
+                </div>
+            </div>
+        {{/haschildren}}
     </div>
 </div>

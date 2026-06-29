@@ -18,17 +18,27 @@
     @template local_backupftp/restore_p
 
     Example context (json):
-    {}
+    {
+        "remotefile": "/path/course.mbz",
+        "filename": "course.mbz",
+        "filesize": "Size: 10MB",
+        "createdontime": "Created on...",
+        "alreadyadded": true,
+        "alreadytext": "Already added: waiting"
+    }
 }}
 
 <div class="local-backupftp-file-row">
     <label class="local-backupftp-file-main">
-        {{{showinput}}}
-        <span class="local-backupftp-file-name">{{filename}}</span>
+        <input type="checkbox" name="file[]" value="{{{remotefile}}}">
+        <span class="local-backupftp-file-name">{{{filename}}}</span>
     </label>
 
     <div class="local-backupftp-file-meta">
-        <span>{{filesize}}</span><br>
-        <span>{{createdontime}}</span>{{{restoretext}}}
+        <span>{{{filesize}}}</span><br>
+        <span>{{{createdontime}}}</span>
+        {{#alreadyadded}}
+            <br> / <span style="color:#3F51B5">{{{alreadytext}}}</span>
+        {{/alreadyadded}}
     </div>
 </div>

@@ -41,7 +41,7 @@ class ftp {
     /**
      * Backward-compatible alias used by older plugin code.
      *
-     * @var resource|null
+     * @var resource
      */
     public $conn_id = null;
 

@@ -30,7 +30,7 @@ $context = context_system::instance();
 
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/backupftp/report.php'));
-$PAGE->set_pagelayout('base');
+$PAGE->set_pagelayout("admin");
 $PAGE->set_title(get_string('reports', 'local_backupftp'));
 $PAGE->set_heading(get_string('reports', 'local_backupftp'));
 
