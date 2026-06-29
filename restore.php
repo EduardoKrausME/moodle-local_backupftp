@@ -157,4 +157,3 @@ echo $OUTPUT->render_from_template('local_backupftp/restore_form', [
 ]);
 
 echo $OUTPUT->footer();
-
