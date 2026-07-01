@@ -97,6 +97,7 @@ $string['manual_cron_button'] = 'Open manual execution';
 $string['manual_cron_desc'] = 'Use this page to process queued backups or restores now, test the task manually, or speed up a migration without waiting for the next scheduled Moodle CRON cycle.';
 $string['manual_cron_title'] = 'Manual CRON execution';
 $string['mbz_extracted_successfully'] = 'MBZ extracted successfully';
+$string['modulename'] = 'Backup FTP/Local';
 $string['nothing_to_execute'] = 'Nothing to execute';
 $string['pluginname'] = 'Backup FTP/Local';
 $string['pre_check_failure'] = 'Pre-check failed';
