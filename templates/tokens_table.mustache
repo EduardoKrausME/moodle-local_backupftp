@@ -30,7 +30,7 @@
                 "uses": 0,
                 "hasaction": true,
                 "revokeurl": "https://moodle.local/local/backupftp/tokens.php?action=revoke&id=1",
-                "confirmjson": "\"Confirm?\""
+                "confirmmessage": "Confirm?"
             }
         ]
     }
@@ -61,7 +61,9 @@
                 <td>
                     {{#hasaction}}
                         <a href="{{{revokeurl}}}"
-                           class="btn btn-danger btn-sm">{{#str}}transfer_token_revoke, local_backupftp{{/str}}</a>
+                           class="btn btn-danger btn-sm"
+                           data-action="local-backupftp-confirm"
+                           data-confirm-message="{{confirmmessage}}">{{#str}}transfer_token_revoke, local_backupftp{{/str}}</a>
                     {{/hasaction}}
                     {{^hasaction}}
                         -
