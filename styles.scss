@@ -1,3 +1,13 @@
+.local-backupftp-secondary-navigation {
+    align-items: center;
+    display: flex;
+    margin-bottom: 1.25rem;
+    .btn {
+        align-items: center;
+        display: inline-flex;
+        gap: .4rem;
+    }
+}
 .local-backupftp-page-links {
     display: grid;
     gap: 1rem;

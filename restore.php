@@ -49,6 +49,9 @@ require_login();
 require_capability('local/backupftp:manage', $context);
 
 echo $OUTPUT->header();
+echo $OUTPUT->render_from_template("local_backupftp/page_navigation", [
+    "backurl" => new moodle_url("/local/backupftp/"),
+]);
 
 // Config (used by list/render helpers below).
 $ftppasta = get_config('local_backupftp', 'ftppasta');
@@ -132,12 +135,28 @@ if (empty($remoteclear) && !empty($remoterestoremarked)) {
 echo $OUTPUT->render_from_template('local_backupftp/restore_info', []);
 
 $remotesession = restore::get_remote_transfer_restore_session();
+$remoteformdata = $remotesession;
+
+// Preserve submitted values when validation fails so the administrator can correct them.
+if (!empty($remotequeue)) {
+    $remoteformdata = [
+        'remotewwwroot' => optional_param('remotewwwroot', '', PARAM_RAW_TRIMMED),
+        'remoteip' => optional_param('remoteip', '', PARAM_RAW_TRIMMED),
+        'remotetoken' => optional_param('remotetoken', '', PARAM_RAW_TRIMMED),
+    ];
+}
+
+$remoteopen = trim((string) ($remoteformdata['remotewwwroot'] ?? '')) !== '' ||
+    trim((string) ($remoteformdata['remoteip'] ?? '')) !== '' ||
+    trim((string) ($remoteformdata['remotetoken'] ?? '')) !== '';
+
 echo $OUTPUT->render_from_template('local_backupftp/remote_transfer_form', [
     'actionurl' => $PAGE->url->out(false),
     'sesskey' => sesskey(),
-    'remotewwwroot' => $remotesession['remotewwwroot'] ?? '',
-    'remoteip' => $remotesession['remoteip'] ?? '',
-    'remotetoken' => $remotesession['remotetoken'] ?? '',
+    'remotewwwroot' => $remoteformdata['remotewwwroot'] ?? '',
+    'remoteip' => $remoteformdata['remoteip'] ?? '',
+    'remotetoken' => $remoteformdata['remotetoken'] ?? '',
+    'remoteopen' => $remoteopen,
 ]);
 
 echo restore::render_remote_transfer_restore_summary();

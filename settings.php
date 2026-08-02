@@ -40,7 +40,7 @@ if ($hassiteconfig) {
         new admin_externalpage(
             'local_backupftp2',
             get_string('modulename', 'local_backupftp'),
-            $CFG->wwwroot . '/local/backupftp/index.php'
+            $CFG->wwwroot . "/local/backupftp/"
         )
     );
 
@@ -102,7 +102,7 @@ $settings->add(new admin_setting_heading('local_backupftp/settings_ftp',
     get_string('settings_ftp', 'local_backupftp'), ''));
 
 $settings->add(new admin_setting_configcheckbox('local_backupftp/ftpenable',
-    get_string('settings_ftpenable', 'local_backupftp'), '', 1));
+    get_string('settings_ftpenable', 'local_backupftp'), '', 0));
 
 $settings->add(new admin_setting_configtext('local_backupftp/ftpurl',
     get_string('settings_ftpurl', 'local_backupftp'),
@@ -113,7 +113,7 @@ $settings->add(new admin_setting_configtext('local_backupftp/ftpurl',
 $settings->add(new admin_setting_configcheckbox('local_backupftp/ftppasv',
     get_string('settings_ftppasv', 'local_backupftp'),
     get_string('settings_ftppasv_desc', 'local_backupftp'),
-    1
+    0
 ));
 
 $settings->add(new admin_setting_configtext('local_backupftp/ftpusername',

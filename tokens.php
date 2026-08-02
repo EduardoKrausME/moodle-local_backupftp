@@ -36,6 +36,8 @@ $PAGE->set_url(new moodle_url('/local/backupftp/tokens.php'));
 $PAGE->set_pagelayout("admin");
 $PAGE->set_title(get_string('transfer_tokens', 'local_backupftp'));
 $PAGE->set_heading(get_string('transfer_tokens', 'local_backupftp'));
+$PAGE->requires->js_call_amd('local_backupftp/confirmation', 'init');
+$PAGE->requires->strings_for_js(['confirmation', 'yes', 'no']);
 
 $createdtoken = '';
 
@@ -57,6 +59,9 @@ if (optional_param('createtoken', 0, PARAM_INT)) {
 token::cleanup_expired();
 
 echo $OUTPUT->header();
+echo $OUTPUT->render_from_template("local_backupftp/page_navigation", [
+    "backurl" => new moodle_url("/local/backupftp/"),
+]);
 
 if ($createdtoken !== '') {
     echo $OUTPUT->render_from_template('local_backupftp/token_created_notification', [
@@ -71,7 +76,7 @@ echo $OUTPUT->render_from_template('local_backupftp/tokens_form', [
     'sesskey' => sesskey(),
 ]);
 
-$records = $DB->get_records(token::TABLE, null, 'timecreated DESC');
+$records = $DB->get_records("local_backupftp_token", null, 'timecreated DESC');
 $rows = [];
 
 foreach ($records as $record) {
@@ -87,7 +92,7 @@ foreach ($records as $record) {
 
     $hasaction = !$revoked && !$expired;
     $revokeurl = '';
-    $confirmjson = '';
+    $confirmmessage = '';
     if ($hasaction) {
         $url = new moodle_url('/local/backupftp/tokens.php', [
             'action' => 'revoke',
@@ -95,10 +100,7 @@ foreach ($records as $record) {
             'sesskey' => sesskey(),
         ]);
         $revokeurl = $url->out(false);
-        $confirmjson = json_encode(
-            get_string('transfer_token_revoke_confirm', 'local_backupftp'),
-            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
-        );
+        $confirmmessage = get_string('transfer_token_revoke_confirm', 'local_backupftp');
     }
 
     $rows[] = [
@@ -113,7 +115,7 @@ foreach ($records as $record) {
         'uses' => (int) $record->downloadcount,
         'hasaction' => $hasaction,
         'revokeurl' => $revokeurl,
-        'confirmjson' => $confirmjson,
+        'confirmmessage' => $confirmmessage,
     ];
 }
 

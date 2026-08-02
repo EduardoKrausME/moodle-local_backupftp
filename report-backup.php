@@ -37,6 +37,8 @@ $PAGE->set_url(new moodle_url('/local/backupftp/report-backup.php'));
 $PAGE->set_pagelayout("admin");
 $PAGE->set_title(get_string('backup_report', 'local_backupftp'));
 $PAGE->set_heading(get_string('backup_report', 'local_backupftp'));
+$PAGE->requires->js_call_amd('local_backupftp/confirmation', 'init');
+$PAGE->requires->strings_for_js(['confirmation', 'yes', 'no']);
 
 require_login();
 require_capability('local/backupftp:manage', $context);
@@ -84,6 +86,9 @@ $table = new backup_view('backup_report');
 
 if (!$table->is_downloading()) {
     echo $OUTPUT->header();
+    echo $OUTPUT->render_from_template("local_backupftp/page_navigation", [
+        "backurl" => new moodle_url("/local/backupftp/"),
+    ]);
     echo $OUTPUT->heading(get_string('report', 'local_backupftp'), 2, 'main', 'backupheading');
 }
 

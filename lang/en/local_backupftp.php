@@ -34,6 +34,8 @@ $string['backup_end_time'] = 'Backup End Time';
 $string['backup_report'] = 'Backup Report';
 $string['backup_start'] = 'Backup started on';
 $string['backup_start_time'] = 'Backup Start Time';
+$string['back_to_plugin_home'] = 'Back to plugin home';
+$string['plugin_navigation'] = 'Backup FTP/Local navigation';
 $string['backupftp:manage'] = 'Manage backup';
 $string['categories'] = 'Categories';
 $string['category_created_successfully'] = ' ==> Category {$a->categoria_nome} created successfully';

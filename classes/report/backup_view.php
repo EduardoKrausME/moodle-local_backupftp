@@ -198,7 +198,8 @@ class backup_view extends table_sql {
             $label,
             [
                 'class' => 'btn btn-danger btn-sm',
-                'onclick' => 'return confirm(' . json_encode($confirm) . ');',
+                'data-action' => 'local-backupftp-confirm',
+                'data-confirm-message' => $confirm,
             ]
         );
     }

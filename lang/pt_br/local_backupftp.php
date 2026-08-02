@@ -34,6 +34,8 @@ $string['backup_end_time'] = 'Hora de término do backup';
 $string['backup_report'] = 'Relatório de backup';
 $string['backup_start'] = 'Backup iniciado em';
 $string['backup_start_time'] = 'Hora de início do backup';
+$string['back_to_plugin_home'] = 'Voltar ao início do plugin';
+$string['plugin_navigation'] = 'Navegação do Backup FTP/Local';
 $string['backupftp:manage'] = 'Gerenciar backup';
 $string['categories'] = 'Categorias';
 $string['category_created_successfully'] = ' ==> Categoria {$a->categoria_nome} criada com sucesso';

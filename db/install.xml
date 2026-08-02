@@ -45,7 +45,6 @@
             </INDEXES>
         </TABLE>
 
-
         <TABLE NAME="local_backupftp_token" COMMENT="Transfer tokens for API and backup download">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>

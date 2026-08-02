@@ -39,6 +39,9 @@ require_login();
 require_capability('local/backupftp:manage', $context);
 
 echo $OUTPUT->header();
+echo $OUTPUT->render_from_template("local_backupftp/page_navigation", [
+    "backurl" => new moodle_url("/local/backupftp/"),
+]);
 
 // Handle POST: add courses from selected categories to backup queue.
 $categoryids = optional_param_array('category', [], PARAM_INT);

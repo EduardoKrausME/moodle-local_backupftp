@@ -41,6 +41,9 @@ $table = new restore_view("backup_report");
 
 if (!$table->is_downloading()) {
     echo $OUTPUT->header();
+    echo $OUTPUT->render_from_template("local_backupftp/page_navigation", [
+        "backurl" => new moodle_url("/local/backupftp/"),
+    ]);
 
     echo $OUTPUT->heading(get_string('report', 'local_backupftp'), 2, "main", "backupheading");
 }

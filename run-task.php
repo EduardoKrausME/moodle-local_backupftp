@@ -48,6 +48,9 @@ require_login();
 require_capability('local/backupftp:manage', $context);
 
 echo $OUTPUT->header();
+echo $OUTPUT->render_from_template("local_backupftp/page_navigation", [
+    "backurl" => new moodle_url("/local/backupftp/"),
+]);
 
 $action = optional_param('action', '', PARAM_ALPHA);
 $nun = optional_param('nun', 0, PARAM_INT);
@@ -81,7 +84,7 @@ if ($action === 'backup' || $action === 'restore') {
 
     echo $OUTPUT->render_from_template('local_backupftp/run-task-result', [
         'text' => $text,
-        'backurl' => new moodle_url('/local/backupftp/run-task.php'),
+        "backurl" => new moodle_url('/local/backupftp/run-task.php'),
     ]);
 
     echo $OUTPUT->footer();

@@ -23,10 +23,11 @@
         "sesskey": "abc123",
         "remotewwwroot": "https://old.example.edu",
         "remoteip": "192.0.2.10",
-        "remotetoken": "token"
+        "remotetoken": "token",
+        "remoteopen": true
     }
 }}
-<details class="card mb-4 local-backupftp-remote-transfer">
+<details class="card mb-4 local-backupftp-remote-transfer"{{#remoteopen}} open{{/remoteopen}}>
     <summary class="card-body d-flex align-items-center justify-content-between" style="cursor: pointer;">
         <h3 class="m-0">{{#str}}transfer_restore_title, local_backupftp{{/str}}</h3>
         <span aria-hidden="true" class="ml-2">▼</span>
