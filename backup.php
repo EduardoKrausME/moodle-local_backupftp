@@ -43,6 +43,15 @@ echo $OUTPUT->render_from_template("local_backupftp/page_navigation", [
     "backurl" => new moodle_url("/local/backupftp/"),
 ]);
 
+$errorcount = $DB->count_records('local_backupftp_course', ['status' => 'error']);
+if ($errorcount > 0) {
+    echo $OUTPUT->render_from_template('local_backupftp/backup_error_summary', [
+        'errorcount' => $errorcount,
+        'reporturl' => new moodle_url('/local/backupftp/report-backup.php'),
+        'showreportlink' => true,
+    ]);
+}
+
 // Handle POST: add courses from selected categories to backup queue.
 $categoryids = optional_param_array('category', [], PARAM_INT);
 if (!empty($categoryids)) {

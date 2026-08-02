@@ -106,6 +106,38 @@ class backup_view extends table_sql {
         return $name;
     }
 
+
+    /**
+     * Render status as a coloured badge.
+     *
+     * @param stdClass $row Report row.
+     * @return string
+     */
+    public function col_status(stdClass $row): string {
+        $status = (string)$row->status;
+        if ($this->is_downloading()) {
+            return $status;
+        }
+
+        $classes = [
+            'waiting' => 'badge badge-secondary',
+            'initiated' => 'badge badge-warning',
+            'completed' => 'badge badge-success',
+            'error' => 'badge badge-danger',
+        ];
+        $labels = [
+            'waiting' => get_string('backup_status_waiting', 'local_backupftp'),
+            'initiated' => get_string('backup_status_initiated', 'local_backupftp'),
+            'completed' => get_string('backup_status_completed', 'local_backupftp'),
+            'error' => get_string('backup_status_error', 'local_backupftp'),
+        ];
+
+        $class = $classes[$status] ?? 'badge badge-light';
+        $label = $labels[$status] ?? $status;
+
+        return html_writer::span(s($label), $class);
+    }
+
     /**
      * col_logs
      *
@@ -130,6 +162,10 @@ class backup_view extends table_sql {
         $url = $this->get_local_download_url_from_logs($logs);
         if ($url) {
             $out .= '<br>' . html_writer::link($url, get_string('download'), ['class' => 'btn btn-primary']);
+        }
+
+        if ($row->status === 'error') {
+            return html_writer::div($out, 'alert alert-danger mb-0', ['role' => 'alert']);
         }
 
         return $out;

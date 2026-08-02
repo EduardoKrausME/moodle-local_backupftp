@@ -69,22 +69,31 @@ if ($action === 'backup' || $action === 'restore') {
     core_php_time_limit::raise(300);
 
     ob_start();
+    $haserror = false;
+    $summary = null;
     try {
         $limit = $nun ?: 30;
         if ($action === 'backup') {
-            (new backup_course())->execute($limit);
+            $summary = (new backup_course())->execute($limit);
+            $haserror = !empty($summary['errors']);
         } else {
             (new restore_course())->execute($limit);
         }
     } catch (Throwable $e) {
         echo "ERROR: " . $e->getMessage() . "\n";
+        $haserror = true;
     }
     $raw = ob_get_clean();
     $text = trim(strip_tags($raw));
 
     echo $OUTPUT->render_from_template('local_backupftp/run-task-result', [
+        'title' => $haserror
+            ? get_string('manual_cron_result_error', 'local_backupftp')
+            : get_string('manual_cron_result_success', 'local_backupftp'),
         'text' => $text,
-        "backurl" => new moodle_url('/local/backupftp/run-task.php'),
+        'error' => $haserror,
+        'success' => !$haserror,
+        'backurl' => new moodle_url('/local/backupftp/run-task.php'),
     ]);
 
     echo $OUTPUT->footer();
