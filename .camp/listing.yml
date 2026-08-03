@@ -1,0 +1,23 @@
+# (RFC §4.1). Authors update their listing with an ordinary commit; camp
+# ingests and hash-pins it at each tagged release. Listing for local_backupftp.
+
+name: "Moodle Course Backup"
+summary: "Automate course backups and securely send them to external servers."
+description: |
+  Automate course backups and securely send them to external servers.
+
+  This is a Moodle plugin that facilitates the backup and restoration process of courses. The plugin performs backups of Moodle courses and automatically transfers them to a configured FTP server, as well as organizes the backups by Moodle categories, making backup management more efficient. The plugin also offers a tool to restore courses directly from the FTP server.
+
+  Key capabilities:
+  - Course backup: Performs backup of courses in Moodle and automatically sends them to the FTP.
+  - Category organization: Organizes backups on the FTP server by course categories, simplifying management.
+  - Course restoration: Allows restoration of courses directly from backups stored on the FTP server.
+
+  Supported Moodle versions in the supplied plugin list: 3.9 - 5.0.
+
+labels:
+  - fully-free
+category: "administration"
+links:
+  docs: https://github.com/EduardoKrausME/moodle-local_backupftp#readme
+  issues: https://github.com/EduardoKrausME/moodle-local_backupftp/issues
