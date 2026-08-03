@@ -38,7 +38,7 @@ $PAGE->set_pagelayout("admin");
 $PAGE->set_title(get_string('backup_report', 'local_backupftp'));
 $PAGE->set_heading(get_string('backup_report', 'local_backupftp'));
 $PAGE->requires->js_call_amd('local_backupftp/confirmation', 'init');
-$PAGE->requires->strings_for_js(['confirmation', 'yes', 'no']);
+$PAGE->requires->strings_for_js(['confirmation', 'yes', 'no'], 'moodle');
 
 require_login();
 require_capability('local/backupftp:manage', $context);
