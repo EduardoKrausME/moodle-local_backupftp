@@ -37,7 +37,7 @@ $PAGE->set_pagelayout("admin");
 $PAGE->set_title(get_string('transfer_tokens', 'local_backupftp'));
 $PAGE->set_heading(get_string('transfer_tokens', 'local_backupftp'));
 $PAGE->requires->js_call_amd('local_backupftp/confirmation', 'init');
-$PAGE->requires->strings_for_js(['confirmation', 'yes', 'no']);
+$PAGE->requires->strings_for_js(['confirmation', 'yes', 'no'], 'moodle');
 
 $createdtoken = '';
 
