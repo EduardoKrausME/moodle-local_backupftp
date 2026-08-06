@@ -137,7 +137,7 @@ $settings->add(new admin_setting_heading('local_backupftp/settings_transfer_api'
 $settings->add(new admin_setting_configduration('local_backupftp/tokenduration',
     get_string('settings_tokenduration', 'local_backupftp'),
     get_string('settings_tokenduration_desc', 'local_backupftp'),
-    48 * HOURSECS
+    604800 // 7 days.
 ));
 
 $settings->add(new admin_setting_heading('local_backupftp/heading2',

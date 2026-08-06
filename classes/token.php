@@ -32,9 +32,9 @@ use stdClass;
  */
 class token {
     /**
-     * Default token lifetime: 48 hours.
+     * Default token lifetime: 7 days.
      */
-    public const DEFAULT_LIFETIME = 172800;
+    public const DEFAULT_LIFETIME = 604800;
 
     /**
      * Create a new transfer token.
@@ -188,6 +188,7 @@ class token {
      * Return configured lifetime in seconds.
      *
      * @return int
+     * @throws \dml_exception
      */
     public static function get_lifetime(): int {
         $lifetime = (int)get_config('local_backupftp', 'tokenduration');
