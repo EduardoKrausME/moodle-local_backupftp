@@ -156,7 +156,6 @@ $string['settings_transfer_api'] = 'コース転送API';
 $string['settings_transfer_api_desc'] = '短期間有効なトークンにより、別のMoodleサイトがコース、カテゴリ、バックアップを一覧表示し、MBZファイルをダウンロードできます。';
 $string['status'] = 'ステータス';
 $string['submit'] = '送信';
-$string['temporary_files_deleted'] = '一時ファイルを削除しました';
 $string['token_invalid_or_expired'] = '転送トークンが無効または期限切れです。';
 $string['transfer_restore_clear_session_button'] = 'リモートデータをクリア';
 $string['transfer_restore_curl_required'] = '別のMoodleからバックアップを転送するには、PHP cURL拡張が必要です。';

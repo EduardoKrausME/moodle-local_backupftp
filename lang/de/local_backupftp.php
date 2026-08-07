@@ -156,7 +156,6 @@ $string['settings_transfer_api'] = 'API zur Kursübertragung';
 $string['settings_transfer_api_desc'] = 'Kurzlebige Tokens erlauben einem anderen Moodle, Kurse, Kategorien und Backups aufzulisten und MBZ-Dateien herunterzuladen.';
 $string['status'] = 'Status';
 $string['submit'] = 'Absenden';
-$string['temporary_files_deleted'] = 'Temporäre Dateien gelöscht';
 $string['token_invalid_or_expired'] = 'Ungültiger oder abgelaufener Übertragungstoken.';
 $string['transfer_restore_clear_session_button'] = 'Entfernte Daten löschen';
 $string['transfer_restore_curl_required'] = 'Die PHP-Erweiterung cURL ist erforderlich, um Backups von einem anderen Moodle zu übertragen.';

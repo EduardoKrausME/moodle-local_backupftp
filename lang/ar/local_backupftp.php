@@ -156,7 +156,6 @@ $string['settings_transfer_api'] = 'API نقل المقررات';
 $string['settings_transfer_api_desc'] = 'تسمح الرموز قصيرة العمر لموقع Moodle آخر بعرض المقررات والتصنيفات والنسخ الاحتياطية وتنزيل ملفات MBZ.';
 $string['status'] = 'الحالة';
 $string['submit'] = 'إرسال';
-$string['temporary_files_deleted'] = 'تم حذف الملفات المؤقتة';
 $string['token_invalid_or_expired'] = 'رمز النقل غير صالح أو منتهي الصلاحية.';
 $string['transfer_restore_clear_session_button'] = 'مسح البيانات البعيدة';
 $string['transfer_restore_curl_required'] = 'امتداد PHP cURL مطلوب لنقل النسخ الاحتياطية من Moodle آخر.';

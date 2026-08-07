@@ -15,6 +15,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * phpcs:disable moodle.Files.MoodleInternal.MoodleInternalGlobalState
+ *
  * Backup course file.
  *
  * @package   local_backupftp
@@ -36,6 +38,7 @@ use local_backupftp\server\ftp;
 use stored_file;
 use Throwable;
 
+global $CFG;
 require_once("{$CFG->dirroot}/backup/util/includes/backup_includes.php");
 require_once("{$CFG->dirroot}/backup/util/includes/restore_includes.php");
 require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
@@ -151,6 +154,7 @@ class backup_course extends scheduled_task {
      * @throws \coding_exception
      * @throws \dml_exception
      * @throws \Exception
+     * @throws \Throwable
      */
     private function execute_backup(int $courseid): array {
         global $CFG;
@@ -239,11 +243,14 @@ class backup_course extends scheduled_task {
      * @param stored_file $file Generated Moodle backup.
      * @param string $originalpath Original filedir path.
      * @param array $logs Backup logs by reference.
-     * @return array{path:string,tempdir:?string}
-     * @throws Exception
+     * @return array
+     * @throws \Throwable
+     * @throws \coding_exception
+     * @throws \invalid_dataroot_permissions
+     * @throws \moodle_exception
      */
     private function remove_admin_from_backup(stored_file $file, string $originalpath, array &$logs): array {
-        $tempdir = make_temp_directory('local_backupftp') . '/sanitize-' . uniqid('', true);
+        $tempdir = make_temp_directory('local_backupftp_' . uniqid()) . '/sanitize-' . uniqid('', true);
         $extractdir = $tempdir . '/extract';
 
         if (!make_writable_directory($extractdir)) {
@@ -287,7 +294,7 @@ class backup_course extends scheduled_task {
                 throw new Exception('Unable to save users.xml after removing admin user');
             }
 
-            $filestemp = get_directory_list($extractdir, '', false, true, true);
+            $filestemp = get_directory_list($extractdir, '', false, true);
             $files = [];
             foreach ($filestemp as $archivepath) {
                 $files[$archivepath] = $extractdir . '/' . $archivepath;

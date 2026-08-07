@@ -156,7 +156,6 @@ $string['settings_transfer_api'] = 'API de transfert des cours';
 $string['settings_transfer_api_desc'] = 'Des jetons de courte durée permettent à un autre site Moodle de lister les cours, catégories et sauvegardes, et de télécharger des fichiers MBZ.';
 $string['status'] = 'Statut';
 $string['submit'] = 'Envoyer';
-$string['temporary_files_deleted'] = 'Fichiers temporaires supprimés';
 $string['token_invalid_or_expired'] = 'Jeton de transfert non valide ou expiré.';
 $string['transfer_restore_clear_session_button'] = 'Effacer les données distantes';
 $string['transfer_restore_curl_required'] = 'L\'extension PHP cURL est requise pour transférer des sauvegardes depuis un autre Moodle.';

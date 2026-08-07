@@ -156,7 +156,6 @@ $string['settings_transfer_api'] = 'API transfer kursus';
 $string['settings_transfer_api_desc'] = 'Token berumur pendek memungkinkan situs Moodle lain mencantumkan kursus, kategori, dan backup, serta mengunduh file MBZ.';
 $string['status'] = 'Status';
 $string['submit'] = 'Kirim';
-$string['temporary_files_deleted'] = 'File sementara dihapus';
 $string['token_invalid_or_expired'] = 'Token transfer tidak valid atau kedaluwarsa.';
 $string['transfer_restore_clear_session_button'] = 'Hapus data jarak jauh';
 $string['transfer_restore_curl_required'] = 'Ekstensi PHP cURL diperlukan untuk mentransfer backup dari Moodle lain.';

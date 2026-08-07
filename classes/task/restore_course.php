@@ -15,6 +15,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * phpcs:disable moodle.Files.MoodleInternal.MoodleInternalGlobalState
+ *
  * Restore course file.
  *
  * @package   local_backupftp
@@ -34,6 +36,7 @@ use restore_controller;
 use restore_dbops;
 use stdClass;
 
+global $CFG;
 require_once("{$CFG->dirroot}/backup/util/includes/backup_includes.php");
 require_once("{$CFG->dirroot}/backup/util/includes/restore_includes.php");
 require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
@@ -143,7 +146,7 @@ class restore_course extends scheduled_task {
             return ['status' => 'error', 'logs' => $logs];
         }
 
-        $localfile = make_temp_directory('local_backupftp') . '/backup-' . uniqid('', true) . '.mbz';
+        $localfile = make_temp_directory('local_backupftp_' . uniqid()) . '/backup-' . uniqid('', true) . '.mbz';
 
         if ($source === 'transfer') {
             $result = $this->download_transfer_file($record, $localfile, $logs);
@@ -257,8 +260,6 @@ class restore_course extends scheduled_task {
         $controller->destroy();
         @unlink($localfile);
 
-        $logs[] = get_string('temporary_files_deleted', 'local_backupftp');
-
         return ['status' => 'completed', 'logs' => $logs];
     }
 
@@ -307,7 +308,7 @@ class restore_course extends scheduled_task {
             $logs = $ftp->connect($logs);
 
             $size = ftp_size($ftp->connid, $remotefile);
-            $size = (int) preg_replace(' / [^0 - 9]/', '', $size);
+            $size = (int) preg_replace('/[^0-9]/', '', $size);
             if ($size < 10) {
                 $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
                 return ['status' => 'error', 'size' => 0];

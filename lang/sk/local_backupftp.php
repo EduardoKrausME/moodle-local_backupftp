@@ -156,7 +156,6 @@ $string['settings_transfer_api'] = 'API prenosu kurzov';
 $string['settings_transfer_api_desc'] = 'Krátkodobé tokeny umožnia inému Moodle webu vypísať kurzy, kategórie a zálohy a sťahovať súbory MBZ.';
 $string['status'] = 'Stav';
 $string['submit'] = 'Odoslať';
-$string['temporary_files_deleted'] = 'Dočasné súbory boli odstránené';
 $string['token_invalid_or_expired'] = 'Neplatný alebo expirovaný token prenosu.';
 $string['transfer_restore_clear_session_button'] = 'Vymazať vzdialené údaje';
 $string['transfer_restore_curl_required'] = 'Rozšírenie PHP cURL je potrebné na prenos záloh z iného Moodle.';

@@ -156,7 +156,6 @@ $string['settings_transfer_api'] = 'API передавання курсів';
 $string['settings_transfer_api_desc'] = 'Короткострокові токени дозволяють іншому сайту Moodle отримувати список курсів, категорій і резервних копій, а також завантажувати файли MBZ.';
 $string['status'] = 'Статус';
 $string['submit'] = 'Надіслати';
-$string['temporary_files_deleted'] = 'Тимчасові файли видалено';
 $string['token_invalid_or_expired'] = 'Недійсний або прострочений токен передавання.';
 $string['transfer_restore_clear_session_button'] = 'Очистити віддалені дані';
 $string['transfer_restore_curl_required'] = 'Розширення PHP cURL потрібне для передавання резервних копій з іншого Moodle.';
