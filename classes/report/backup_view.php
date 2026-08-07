@@ -135,7 +135,7 @@ class backup_view extends table_sql {
         $class = $classes[$status] ?? 'badge badge-light';
         $label = $labels[$status] ?? $status;
 
-        return html_writer::span(s($label), $class);
+        return html_writer::span($label, $class);
     }
 
     /**
@@ -157,7 +157,7 @@ class backup_view extends table_sql {
             return $logs;
         }
 
-        $out = nl2br(s($logs));
+        $out = nl2br($logs);
 
         $url = $this->get_local_download_url_from_logs($logs);
         if ($url) {

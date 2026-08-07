@@ -139,7 +139,7 @@ class restore_view extends table_sql {
         if ($this->is_downloading()) {
             return $row->logs;
         }
-        return nl2br(s($row->logs));
+        return nl2br($row->logs);
     }
 
     /**
