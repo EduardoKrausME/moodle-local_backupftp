@@ -215,10 +215,9 @@ class restore {
                 if ($existing) {
                     $existing->sourceip = $remoteip;
                     $existing->sourcetoken = $remotetoken;
-                    $existing->sourceexpires = $tokenexpires;
                     $existing->sourcefilesize = $filesize;
                     $existing->sourcetimemodified = $timemodified;
-                    if ($existing->status === 'error' || $existing->sourceexpires < time()) {
+                    if ($existing->status === 'error' ) {
                         $existing->status = 'waiting';
                         $existing->logs = '';
                         $existing->timestart = 0;
@@ -233,7 +232,6 @@ class restore {
                         'sourcewwwroot' => $remotewwwroot,
                         'sourceip' => $remoteip,
                         'sourcetoken' => $remotetoken,
-                        'sourceexpires' => $tokenexpires,
                         'sourcefilesize' => $filesize,
                         'sourcetimemodified' => $timemodified,
                         'status' => 'waiting',

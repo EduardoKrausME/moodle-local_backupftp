@@ -270,16 +270,6 @@ class restore_course extends scheduled_task {
         $wwwroot = trim((string) ($record->sourcewwwroot ?? ''));
         $ip = trim((string) ($record->sourceip ?? ''));
         $token = trim((string) ($record->sourcetoken ?? ''));
-        $expires = (int) ($record->sourceexpires ?? 0);
-
-        if ($expires > 0) {
-            $remaining = $expires - time();
-            if ($remaining <= 0) {
-                $logs[] = get_string('transfer_token_expired_before_restore', 'local_backupftp');
-                return ['status' => 'error', 'size' => 0];
-            }
-            $logs[] = get_string('transfer_restore_token_remaining_log', 'local_backupftp', format_time($remaining));
-        }
 
         if ($wwwroot === '' || $token === '') {
             $logs[] = get_string('transfer_restore_missing_remote_data', 'local_backupftp');

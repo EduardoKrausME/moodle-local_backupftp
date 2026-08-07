@@ -26,7 +26,6 @@
                 <FIELD NAME="sourcewwwroot" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="sourceip" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="sourcetoken" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-                <FIELD NAME="sourceexpires" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
                 <FIELD NAME="sourcefilesize" TYPE="int" LENGTH="20" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
                 <FIELD NAME="sourcetimemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
                 <FIELD NAME="logs" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
@@ -39,7 +38,6 @@
             </KEYS>
             <INDEXES>
                 <INDEX NAME="source_ix" UNIQUE="false" FIELDS="source"/>
-                <INDEX NAME="sourceexpires_ix" UNIQUE="false" FIELDS="sourceexpires"/>
             </INDEXES>
         </TABLE>
         <TABLE NAME="local_backupftp_token" COMMENT="Transfer tokens for API and backup download">

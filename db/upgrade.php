@@ -70,8 +70,6 @@ function xmldb_local_backupftp_upgrade($oldversion) {
             new xmldb_field('sourcewwwroot', XMLDB_TYPE_TEXT, null, null, null, null, null, 'source'),
             new xmldb_field('sourceip', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'sourcewwwroot'),
             new xmldb_field('sourcetoken', XMLDB_TYPE_TEXT, null, null, null, null, null, 'sourceip'),
-            new xmldb_field('sourceexpires', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'sourcetoken'),
-            new xmldb_field('sourcefilesize', XMLDB_TYPE_INTEGER, '20', null, XMLDB_NOTNULL, null, '0', 'sourceexpires'),
             new xmldb_field('sourcetimemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'sourcefilesize'),
         ];
 
@@ -82,11 +80,6 @@ function xmldb_local_backupftp_upgrade($oldversion) {
         }
 
         $index = new xmldb_index('source_ix', XMLDB_INDEX_NOTUNIQUE, ['source']);
-        if (!$dbman->index_exists($table, $index)) {
-            $dbman->add_index($table, $index);
-        }
-
-        $index = new xmldb_index('sourceexpires_ix', XMLDB_INDEX_NOTUNIQUE, ['sourceexpires']);
         if (!$dbman->index_exists($table, $index)) {
             $dbman->add_index($table, $index);
         }

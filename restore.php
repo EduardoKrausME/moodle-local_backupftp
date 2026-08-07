@@ -90,7 +90,6 @@ if (!empty($files)) {
             'sourcewwwroot' => '',
             'sourceip' => '',
             'sourcetoken' => '',
-            'sourceexpires' => 0,
             'sourcefilesize' => 0,
             'sourcetimemodified' => 0,
             'status' => 'waiting',
