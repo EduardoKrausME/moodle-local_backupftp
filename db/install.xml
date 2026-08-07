@@ -3,7 +3,6 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
     <TABLES>
-
         <TABLE NAME="local_backupftp_course" COMMENT="Cursos para backup">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
@@ -18,10 +17,10 @@
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
             </KEYS>
         </TABLE>
-
         <TABLE NAME="local_backupftp_restore" COMMENT="Cursos para restaurar">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="remotefile" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="source" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" DEFAULT="configured"/>
                 <FIELD NAME="sourcewwwroot" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
@@ -30,7 +29,6 @@
                 <FIELD NAME="sourceexpires" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
                 <FIELD NAME="sourcefilesize" TYPE="int" LENGTH="20" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
                 <FIELD NAME="sourcetimemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
-                <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="logs" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="timecreated" TYPE="int" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="timestart" TYPE="int" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
@@ -44,7 +42,6 @@
                 <INDEX NAME="sourceexpires_ix" UNIQUE="false" FIELDS="sourceexpires"/>
             </INDEXES>
         </TABLE>
-
         <TABLE NAME="local_backupftp_token" COMMENT="Transfer tokens for API and backup download">
             <FIELDS>
                 <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
