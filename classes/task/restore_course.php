@@ -72,20 +72,17 @@ class restore_course extends scheduled_task {
 
         for ($i = 0; $i < $limit; $i++) {
             if ($DB->get_dbfamily() == 'postgres') {
-                $backupftprestore = $DB->get_record_sql("
-                    SELECT * FROM {local_backupftp_restore}
-                     WHERE status LIKE 'waiting'
-                  ORDER BY RANDOM()
-                     LIMIT 1"
-                );
+                $randon = "ORDER BY RANDOM()";
             } else {
-                $backupftprestore = $DB->get_record_sql("
-                    SELECT * FROM {local_backupftp_restore}
-                     WHERE status LIKE 'waiting'
-                  ORDER BY RAND()
-                     LIMIT 1"
-                );
+                $randon = "ORDER BY RAND()";
             }
+
+            $sql = "
+                SELECT * FROM {local_backupftp_restore}
+                 WHERE status LIKE 'waiting'
+              {$randon}
+                 LIMIT 1";
+            $backupftprestore = $DB->get_record_sql($sql);
 
             if ($backupftprestore) {
                 $backupftprestore->timestart = time();
@@ -93,7 +90,6 @@ class restore_course extends scheduled_task {
                 $backupftprestore->timeend = 0;
                 $DB->update_record('local_backupftp_restore', $backupftprestore);
 
-                $status = 'completed';
                 try {
                     $result = $this->execute_restore($backupftprestore);
                     $logs = $result['logs'];
@@ -112,6 +108,7 @@ class restore_course extends scheduled_task {
                 mtrace($logs);
             } else {
                 mtrace(get_string('nothing_to_execute', 'local_backupftp'));
+                return;
             }
         }
     }
@@ -126,9 +123,9 @@ class restore_course extends scheduled_task {
     private function execute_restore($restore): array {
         global $CFG, $DB;
 
-        $record = is_object($restore) ? $restore : (object)['remotefile' => $restore, 'source' => 'configured'];
+        $record = is_object($restore) ? $restore : (object) ['remotefile' => $restore, 'source' => 'configured'];
         $source = empty($record->source) ? 'configured' : $record->source;
-        $remotefile = (string)$record->remotefile;
+        $remotefile = (string) $record->remotefile;
 
         mtrace("File is {$remotefile}");
         $logs = ["File is {$remotefile}"];
@@ -142,21 +139,16 @@ class restore_course extends scheduled_task {
         }
 
         $localfile = make_temp_directory('local_backupftp') . '/backup-' . uniqid('', true) . '.mbz';
-        $size = 0;
 
         if ($source === 'transfer') {
             $result = $this->download_transfer_file($record, $localfile, $logs);
-            if ($result['status'] !== 'completed') {
-                return ['status' => $result['status'], 'logs' => $logs];
-            }
-            $size = $result['size'];
         } else {
             $result = $this->copy_configured_source_file($remotefile, $localfile, $logs);
-            if ($result['status'] !== 'completed') {
-                return ['status' => $result['status'], 'logs' => $logs];
-            }
-            $size = $result['size'];
         }
+        if ($result['status'] !== 'completed') {
+            return ['status' => $result['status'], 'logs' => $logs];
+        }
+        $size = $result['size'];
 
         $logs[] = get_string('processing_file', 'local_backupftp', [
             'remote_file' => $remotefile,
@@ -165,7 +157,7 @@ class restore_course extends scheduled_task {
 
         $packer = get_file_packer('application/vnd.moodle.backup');
         $backuptmpdir = restore_controller::get_tempdir_name(SITEID, get_admin()->id);
-        $path = make_backup_temp_directory($backuptmpdir, true);
+        $path = make_backup_temp_directory($backuptmpdir);
         if ($packer->extract_to_pathname($localfile, $path)) {
             $logs[] = get_string('mbz_extracted_successfully', 'local_backupftp');
             $logs[] = $path;
@@ -186,31 +178,64 @@ class restore_course extends scheduled_task {
         }
         $logs[] = get_string('adding_to_category', 'local_backupftp', ['categoria' => $categoria]);
 
-        $course = $DB->get_record_sql('SELECT id FROM {course} WHERE fullname = :fullname AND category = :category',
-            ['fullname' => $filename, 'category' => $categoria]);
+        $course = $DB->get_record_sql(
+            'SELECT id FROM {course} WHERE fullname = :fullname AND category = :category',
+            ['fullname' => $filename, 'category' => $categoria]
+        );
         if ($course) {
             $transaction->allow_commit();
             @unlink($localfile);
-            $logs[] = get_string('restore_course_already_exists', 'local_backupftp',
-                ['course_url' => "{$CFG->wwwroot}/course/view.php?id={$course->id}"]);
+            $logs[] = get_string(
+                'restore_course_already_exists', 'local_backupftp',
+                ['course_url' => "{$CFG->wwwroot}/course/view.php?id={$course->id}"]
+            );
             return ['status' => 'completed', 'logs' => $logs];
         }
 
         $courseid = restore_dbops::create_new_course('', '', $categoria);
-        $logs[] = get_string('access_course', 'local_backupftp',
-            ['course_url' => "{$CFG->wwwroot}/course/view.php?id={$courseid}"]);
+        $logs[] = get_string(
+            'access_course', 'local_backupftp',
+            ['course_url' => "{$CFG->wwwroot}/course/view.php?id={$courseid}"]
+        );
 
-        $controller = new restore_controller($backuptmpdir, $courseid,
+        $controller = new restore_controller(
+            $backuptmpdir, $courseid,
             backup::INTERACTIVE_NO, backup::MODE_GENERAL, $userdoingrestore,
-            backup::TARGET_NEW_COURSE);
+            backup::TARGET_NEW_COURSE
+        );
 
         try {
-            if ($controller->execute_precheck()) {
-                $controller->execute_plan();
-                $transaction->allow_commit();
-            } else {
+            $controller->execute_precheck();
+
+            $precheckresults = $controller->get_precheck_results();
+            if (!empty($precheckresults['warnings'])) {
+                $items = [];
+
+                foreach ($precheckresults['warnings'] as $warning) {
+                    $items[] = "<li>{$warning}</li>";
+                }
+
+                $logs[] = '<div class="alert alert-warning"><b>Restore precheck warnings:</b><ul class="mb-0">' .
+                    implode('', $items) .
+                    '</ul></div>';
+            }
+
+            if (!empty($precheckresults['errors'])) {
+                $items = [];
+
+                foreach ($precheckresults['errors'] as $error) {
+                    $items[] = "<li>{$error}</li>";
+                }
+
+                $logs[] = '<div class="alert alert-danger"><b>Restore precheck errors:</b><ul class="mb-0">' .
+                    implode('', $items) .
+                    '</ul></div> ';
+
                 throw new Exception('Restore precheck failed');
             }
+
+            $controller->execute_plan();
+            $transaction->allow_commit();
         } catch (Exception $e) {
             try {
                 $transaction->rollback($e);
@@ -242,10 +267,10 @@ class restore_course extends scheduled_task {
      * @throws Exception
      */
     private function download_transfer_file(stdClass $record, string $localfile, array &$logs): array {
-        $wwwroot = trim((string)($record->sourcewwwroot ?? ''));
-        $ip = trim((string)($record->sourceip ?? ''));
-        $token = trim((string)($record->sourcetoken ?? ''));
-        $expires = (int)($record->sourceexpires ?? 0);
+        $wwwroot = trim((string) ($record->sourcewwwroot ?? ''));
+        $ip = trim((string) ($record->sourceip ?? ''));
+        $token = trim((string) ($record->sourcetoken ?? ''));
+        $expires = (int) ($record->sourceexpires ?? 0);
 
         if ($expires > 0) {
             $remaining = $expires - time();
@@ -261,8 +286,8 @@ class restore_course extends scheduled_task {
             return ['status' => 'error', 'size' => 0];
         }
 
-        $size = transfer_client::download_backup($wwwroot, $ip, $token, (string)$record->remotefile, $localfile, $logs);
-        $logs[] = get_string('file_found_and_downloaded', 'local_backupftp');
+        $size = transfer_client::download_backup($wwwroot, $ip, $token, (string) $record->remotefile, $localfile, $logs);
+        $logs[] = get_string('file_found_and_downloaded', 'local_backupftp') . " - " . ftp::format_bytes($size);
 
         return ['status' => 'completed', 'size' => $size];
     }
@@ -274,6 +299,9 @@ class restore_course extends scheduled_task {
      * @param string $localfile Local target path.
      * @param array $logs Logs by reference.
      * @return array{status:string,size:int}
+     * @throws \coding_exception
+     * @throws \dml_exception
+     * @throws \Exception
      */
     private function copy_configured_source_file(string $remotefile, string $localfile, array &$logs): array {
         $localfileenable = get_config('local_backupftp', 'localfileenable');
@@ -284,7 +312,7 @@ class restore_course extends scheduled_task {
             $logs = $ftp->connect($logs);
 
             $size = ftp_size($ftp->connid, $remotefile);
-            $size = (int)preg_replace('/[^0-9]/', '', $size);
+            $size = (int) preg_replace(' / [^0 - 9]/', '', $size);
             if ($size < 10) {
                 $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
                 return ['status' => 'error', 'size' => 0];
@@ -296,7 +324,7 @@ class restore_course extends scheduled_task {
                 return ['status' => 'error', 'size' => 0];
             }
 
-            if (ftp_fget($ftp->connid, $fileresource, $remotefile, FTP_BINARY)) {
+            if (ftp_fget($ftp->connid, $fileresource, $remotefile)) {
                 fclose($fileresource);
                 $logs[] = get_string('file_found_and_downloaded', 'local_backupftp');
             } else {
@@ -306,7 +334,7 @@ class restore_course extends scheduled_task {
                 return ['status' => 'error', 'size' => 0];
             }
         } else if ($localfileenable) {
-            $size = is_file($remotefile) ? (int)filesize($remotefile) : 0;
+            $size = is_file($remotefile) ? (int) filesize($remotefile) : 0;
             if ($size < 10) {
                 $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
                 return ['status' => 'error', 'size' => 0];
@@ -319,7 +347,7 @@ class restore_course extends scheduled_task {
         }
 
         clearstatcache(true, $localfile);
-        $size = is_file($localfile) ? (int)filesize($localfile) : 0;
+        $size = is_file($localfile) ? (int) filesize($localfile) : 0;
 
         return ['status' => 'completed', 'size' => $size];
     }
