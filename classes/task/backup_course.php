@@ -36,6 +36,11 @@ use local_backupftp\server\ftp;
 use stored_file;
 use Throwable;
 
+require_once("{$CFG->dirroot}/backup/util/includes/backup_includes.php");
+require_once("{$CFG->dirroot}/backup/util/includes/restore_includes.php");
+require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
+require_once("{$CFG->dirroot}/course/classes/category.php");
+
 /**
  * Generate queued course backups and send them to configured destinations.
  */

@@ -34,6 +34,11 @@ use restore_controller;
 use restore_dbops;
 use stdClass;
 
+require_once("{$CFG->dirroot}/backup/util/includes/backup_includes.php");
+require_once("{$CFG->dirroot}/backup/util/includes/restore_includes.php");
+require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
+require_once("{$CFG->dirroot}/course/classes/category.php");
+
 /**
  * Class restore_course.
  *
