@@ -53,6 +53,8 @@ class backup_course extends scheduled_task {
      *
      * @param int $limit Maximum number of courses to process.
      * @return array{processed:int,completed:int,errors:int}
+     * @throws \coding_exception
+     * @throws \dml_exception
      */
     public function execute($limit = 30) {
         global $DB, $CFG;
@@ -77,27 +79,23 @@ class backup_course extends scheduled_task {
         );
 
         for ($i = 0; $i < $limit; $i++) {
-            if ($DB->get_dbfamily() === 'postgres') {
-                $backupftpcourse = $DB->get_record_sql(
-                    "SELECT *
-                       FROM {local_backupftp_course}
-                      WHERE status = 'waiting'
-                   ORDER BY RANDOM()
-                      LIMIT 1"
-                );
+            if ($DB->get_dbfamily() == 'postgres') {
+                $randon = "ORDER BY RANDOM()";
             } else {
-                $backupftpcourse = $DB->get_record_sql(
-                    "SELECT *
-                       FROM {local_backupftp_course}
-                      WHERE status = 'waiting'
-                   ORDER BY RAND()
-                      LIMIT 1"
-                );
+                $randon = "ORDER BY RAND()";
             }
+
+            $sql = "
+                 SELECT *
+                   FROM {local_backupftp_course}
+                  WHERE status = 'waiting'
+               {$randon}
+                  LIMIT 1";
+            $backupftpcourse = $DB->get_record_sql($sql);
 
             if (!$backupftpcourse) {
                 mtrace(get_string('nothing_to_execute', 'local_backupftp'));
-                break;
+                return $summary;
             }
 
             $backupftpcourse->timestart = time();
@@ -105,7 +103,6 @@ class backup_course extends scheduled_task {
             $backupftpcourse->timeend = 0;
             $DB->update_record('local_backupftp_course', $backupftpcourse);
 
-            $status = 'completed';
             $logs = [];
 
             try {
@@ -141,6 +138,12 @@ class backup_course extends scheduled_task {
      *
      * @param int $courseid Course id.
      * @return array{status:string,logs:array}
+     * @throws \backup_controller_exception
+     * @throws \base_plan_exception
+     * @throws \base_setting_exception
+     * @throws \coding_exception
+     * @throws \dml_exception
+     * @throws \Exception
      */
     private function execute_backup(int $courseid): array {
         global $CFG;
@@ -307,7 +310,7 @@ class backup_course extends scheduled_task {
 
             if ($localfileenable) {
                 $localfolderpath .= DIRECTORY_SEPARATOR . $path;
-                if (!make_writable_directory($localfolderpath, true)) {
+                if (!make_writable_directory($localfolderpath)) {
                     $logs[] = get_string('log:savelocal:error', 'local_backupftp', $localfolderpath);
                     $status = 'error';
                 }
@@ -323,7 +326,7 @@ class backup_course extends scheduled_task {
                 $logs[] = get_string('backup_tempfile_unreadable', 'local_backupftp', $localtempfile);
                 $status = 'error';
             } else {
-                $uploaded = @ftp_fput($ftp->connid, $remotefilepath, $handle, FTP_BINARY);
+                $uploaded = @ftp_fput($ftp->connid, $remotefilepath, $handle);
                 fclose($handle);
 
                 if ($uploaded) {
@@ -350,7 +353,7 @@ class backup_course extends scheduled_task {
                 ? $localfolderpath . DIRECTORY_SEPARATOR . $filename
                 : $localfilepath . DIRECTORY_SEPARATOR . $filename;
 
-            if (!make_writable_directory(dirname($localfile), true)) {
+            if (!make_writable_directory(dirname($localfile))) {
                 $logs[] = get_string('log:savelocal:error', 'local_backupftp', $localfile);
                 $status = 'error';
             } else if (@copy($localtempfile, $localfile)) {

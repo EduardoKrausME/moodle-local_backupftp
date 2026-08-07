@@ -22,6 +22,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core\session\manager;
 use local_backupftp\task\backup_course;
 use local_backupftp\task\restore_course;
 
@@ -64,7 +65,7 @@ if ($nun > 50) {
 if ($action === 'backup' || $action === 'restore') {
     require_sesskey();
 
-    \core\session\manager::write_close();
+    manager::write_close();
     ignore_user_abort(true);
     core_php_time_limit::raise(300);
 
