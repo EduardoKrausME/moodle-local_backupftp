@@ -43,10 +43,10 @@ define(['jquery', 'core/notification'], function($, Notification) {
                 }
 
                 Notification.confirm(
-                    M.util.get_string('confirmation'),
+                    M.util.get_string('confirmation', 'admin'),
                     message,
-                    M.util.get_string('yes'),
-                    M.util.get_string('no'),
+                    M.util.get_string('yes', 'moodle'),
+                    M.util.get_string('no', 'moodle'),
                     function() {
                         window.location.assign(url);
                     }
