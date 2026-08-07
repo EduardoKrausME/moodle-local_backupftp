@@ -122,7 +122,7 @@ class api {
 
         $data = self::course_record_to_array($course, true);
         $data['category'] = $category ? self::category_record_to_array($category, false) : null;
-        $data['backupjobs'] = self::get_course_backup_jobs((int) $course->id);
+        $data['backupjobs'] = self::get_course_backup_jobs($course->id);
 
         return $data;
     }
@@ -225,17 +225,17 @@ class api {
         $records = $DB->get_records_sql($sql, [], $offset, $limit);
         foreach ($records as $record) {
             $queue[] = [
-                'id' => (int) $record->id,
-                'courseid' => (int) $record->courseid,
+                'id' => $record->id,
+                'courseid' => $record->courseid,
                 'coursefullname' => $record->coursefullname,
                 'courseshortname' => $record->courseshortname,
-                'categoryid' => isset($record->category) ? (int) $record->category : null,
+                'categoryid' => isset($record->category) ? $record->category : null,
                 'categoryname' => $record->categoryname,
                 'status' => $record->status,
                 'logs' => $record->logs,
-                'timecreated' => (int) $record->timecreated,
-                'timestart' => (int) $record->timestart,
-                'timeend' => (int) $record->timeend,
+                'timecreated' => $record->timecreated,
+                'timestart' => $record->timestart,
+                'timeend' => $record->timeend,
             ];
         }
 
@@ -319,37 +319,37 @@ class api {
         global $CFG;
 
         $contextid = null;
-        if (!empty($record->id) && (int) $record->id !== SITEID) {
+        if (!empty($record->id) && $record->id !== SITEID) {
             try {
-                $contextid = context_course::instance((int) $record->id)->id;
-            } catch (Exception) {
+                $contextid = context_course::instance($record->id)->id;
+            } catch (Exception $e) {
                 $contextid = null;
             }
         }
 
         $data = [
-            'id' => (int) $record->id,
+            'id' => $record->id,
             'fullname' => $record->fullname ?? '',
             'shortname' => $record->shortname ?? '',
             'idnumber' => $record->idnumber ?? '',
-            'categoryid' => isset($record->category) ? (int) $record->category : null,
+            'categoryid' => isset($record->category) ? $record->category : null,
             'categoryname' => $record->categoryname ?? null,
-            'visible' => isset($record->visible) ? (int) $record->visible : null,
-            'startdate' => isset($record->startdate) ? (int) $record->startdate : null,
-            'enddate' => isset($record->enddate) ? (int) $record->enddate : null,
-            'timecreated' => isset($record->timecreated) ? (int) $record->timecreated : null,
-            'timemodified' => isset($record->timemodified) ? (int) $record->timemodified : null,
-            'url' => new moodle_url('/course/view.php', ['id' => (int) $record->id]),
+            'visible' => isset($record->visible) ? $record->visible : null,
+            'startdate' => isset($record->startdate) ? $record->startdate : null,
+            'enddate' => isset($record->enddate) ? $record->enddate : null,
+            'timecreated' => isset($record->timecreated) ? $record->timecreated : null,
+            'timemodified' => isset($record->timemodified) ? $record->timemodified : null,
+            'url' => new moodle_url('/course/view.php', ['id' => $record->id]),
         ];
 
         if ($full) {
             $data += [
                 'summary' => $record->summary ?? '',
-                'summaryformat' => isset($record->summaryformat) ? (int) $record->summaryformat : null,
+                'summaryformat' => isset($record->summaryformat) ? $record->summaryformat : null,
                 'format' => $record->format ?? '',
-                'showgrades' => isset($record->showgrades) ? (int) $record->showgrades : null,
-                'newsitems' => isset($record->newsitems) ? (int) $record->newsitems : null,
-                'enablecompletion' => isset($record->enablecompletion) ? (int) $record->enablecompletion : null,
+                'showgrades' => isset($record->showgrades) ? $record->showgrades : null,
+                'newsitems' => isset($record->newsitems) ? $record->newsitems : null,
+                'enablecompletion' => isset($record->enablecompletion) ? $record->enablecompletion : null,
                 'lang' => $record->lang ?? '',
                 'contextid' => $contextid,
                 'wwwroot' => $CFG->wwwroot,
@@ -419,38 +419,38 @@ class api {
      */
     private static function category_record_to_array(stdClass $record, bool $full): array {
         try {
-            $contextid = context_coursecat::instance((int) $record->id)->id;
-        } catch (Exception) {
+            $contextid = context_coursecat::instance($record->id)->id;
+        } catch (Exception $e) {
             $contextid = null;
         }
 
         $data = [
-            'id' => (int) $record->id,
+            'id' => $record->id,
             'name' => $record->name ?? '',
             'idnumber' => $record->idnumber ?? '',
-            'parent' => isset($record->parent) ? (int) $record->parent : null,
-            'visible' => isset($record->visible) ? (int) $record->visible : null,
-            'coursecount' => isset($record->coursecount) ? (int) $record->coursecount : null,
-            'sortorder' => isset($record->sortorder) ? (int) $record->sortorder : null,
+            'parent' => isset($record->parent) ? $record->parent : null,
+            'visible' => isset($record->visible) ? $record->visible : null,
+            'coursecount' => isset($record->coursecount) ? $record->coursecount : null,
+            'sortorder' => isset($record->sortorder) ? $record->sortorder : null,
         ];
 
         if ($full) {
             $pathids = [];
             if (!empty($record->path)) {
                 foreach (explode('/', trim($record->path, '/')) as $id) {
-                    if ((int) $id > 0) {
-                        $pathids[] = (int) $id;
+                    if ($id > 0) {
+                        $pathids[] = $id;
                     }
                 }
             }
 
             $data += [
                 'description' => $record->description ?? '',
-                'descriptionformat' => isset($record->descriptionformat) ? (int) $record->descriptionformat : null,
+                'descriptionformat' => isset($record->descriptionformat) ? $record->descriptionformat : null,
                 'theme' => $record->theme ?? null,
                 'path' => $record->path ?? '',
                 'pathids' => $pathids,
-                'depth' => isset($record->depth) ? (int) $record->depth : null,
+                'depth' => isset($record->depth) ? $record->depth : null,
                 'contextid' => $contextid,
             ];
         }
@@ -472,12 +472,12 @@ class api {
         $items = [];
         foreach ($records as $record) {
             $items[] = [
-                'id' => (int) $record->id,
+                'id' => $record->id,
                 'status' => $record->status,
                 'logs' => $record->logs,
-                'timecreated' => (int) $record->timecreated,
-                'timestart' => (int) $record->timestart,
-                'timeend' => (int) $record->timeend,
+                'timecreated' => $record->timecreated,
+                'timestart' => $record->timestart,
+                'timeend' => $record->timeend,
             ];
         }
 
@@ -562,9 +562,9 @@ class api {
 
         $courseid = 0;
         if (preg_match('/^(\d+)\s*-\s*.+\.mbz$/iu', $filename, $matches)) {
-            $courseid = (int) $matches[1];
+            $courseid = $matches[1];
         } else if (preg_match('/backup-moodle2-course-(\d+)-/iu', $filename, $matches)) {
-            $courseid = (int) $matches[1];
+            $courseid = $matches[1];
         }
 
         $empty = [
@@ -590,10 +590,10 @@ class api {
         }
 
         return [
-            'courseid' => (int) $course->id,
+            'courseid' => $course->id,
             'coursefullname' => $course->fullname ?? '',
             'courseshortname' => $course->shortname ?? '',
-            'categoryid' => isset($course->category) ? (int) $course->category : null,
+            'categoryid' => isset($course->category) ? $course->category : null,
             'categoryname' => $course->categoryname ?? '',
         ];
     }

@@ -308,7 +308,7 @@ class transfer_client {
         $body = curl_exec($ch);
         $errno = curl_errno($ch);
         $error = curl_error($ch);
-        $httpcode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         curl_close($ch);
         if ($fp) {
@@ -322,7 +322,7 @@ class transfer_client {
             throw new moodle_exception('transfer_restore_http_error', 'local_backupftp', '', s($error));
         }
 
-        if ($httpcode >= 400 || $httpcode === 0) {
+        if ($httpcode >= 400 || $httpcode == 0) {
             if ($targetfile !== '') {
                 @unlink($targetfile);
             }

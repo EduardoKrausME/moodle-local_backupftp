@@ -229,7 +229,7 @@ class restore_course extends scheduled_task {
 
                 $logs[] = '<div class="alert alert-danger"><b>Restore precheck errors:</b><ul class="mb-0">' .
                     implode('', $items) .
-                    '</ul></div> ';
+                    '</ul></div>';
 
                 throw new Exception('Restore precheck failed');
             }
@@ -239,7 +239,7 @@ class restore_course extends scheduled_task {
         } catch (Exception $e) {
             try {
                 $transaction->rollback($e);
-            } catch (Exception) { // phpcs:disable
+            } catch (Exception $e) { // phpcs:disable
                 // Keep original error in the logs below.
             }
             $controller->destroy();

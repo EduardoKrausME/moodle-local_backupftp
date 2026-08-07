@@ -28,6 +28,8 @@ use backup;
 use backup_controller;
 use backup_plan_dbops;
 use core\task\scheduled_task;
+use DOMDocument;
+use DOMXPath;
 use Exception;
 use local_backupftp\localfilepath;
 use local_backupftp\server\ftp;
@@ -151,6 +153,7 @@ class backup_course extends scheduled_task {
         $logs = [];
         $controller = null;
         $file = null;
+        $sanitizetempdir = null;
 
         $logs[] = get_string('backup_creation_parameters', 'local_backupftp') . "\n
    type     : COURSE
@@ -201,6 +204,10 @@ class backup_course extends scheduled_task {
             $l2 = $contenthash[2] . $contenthash[3];
             $localtempfile = "{$CFG->dataroot}/filedir/{$l1}/{$l2}/{$contenthash}";
 
+            $preparedbackup = $this->remove_admin_from_backup($file, $localtempfile, $logs);
+            $localtempfile = $preparedbackup['path'];
+            $sanitizetempdir = $preparedbackup['tempdir'];
+
             return $this->send_file_ftp_local(
                 $localtempfile,
                 $file->get_filename(),
@@ -208,6 +215,9 @@ class backup_course extends scheduled_task {
                 $logs
             );
         } finally {
+            if ($sanitizetempdir && is_dir($sanitizetempdir)) {
+                fulldelete($sanitizetempdir);
+            }
             if ($file instanceof stored_file) {
                 $file->delete();
                 mtrace('Temp local file deleted');
@@ -215,6 +225,82 @@ class backup_course extends scheduled_task {
             if ($controller instanceof backup_controller) {
                 $controller->destroy();
             }
+        }
+    }
+
+    /**
+     * Remove the admin user from users.xml while keeping all other backup users.
+     *
+     * @param stored_file $file Generated Moodle backup.
+     * @param string $originalpath Original filedir path.
+     * @param array $logs Backup logs by reference.
+     * @return array{path:string,tempdir:?string}
+     * @throws Exception
+     */
+    private function remove_admin_from_backup(stored_file $file, string $originalpath, array &$logs): array {
+        $tempdir = make_temp_directory('local_backupftp') . '/sanitize-' . uniqid('', true);
+        $extractdir = $tempdir . '/extract';
+
+        if (!make_writable_directory($extractdir)) {
+            throw new Exception('Unable to create temporary directory to sanitize MBZ backup');
+        }
+
+        try {
+            $packer = get_file_packer('application/vnd.moodle.backup');
+            if (!$packer->extract_to_pathname($file, $extractdir, null, null, true)) {
+                throw new Exception('Unable to extract MBZ backup to remove admin user');
+            }
+
+            $usersfile = $extractdir . '/users.xml';
+            if (!is_file($usersfile)) {
+                fulldelete($tempdir);
+                return ['path' => $originalpath, 'tempdir' => null];
+            }
+
+            $dom = new DOMDocument();
+            $dom->preserveWhiteSpace = true;
+            if (!$dom->load($usersfile)) {
+                throw new Exception('Unable to read users.xml from MBZ backup');
+            }
+
+            $xpath = new DOMXPath($dom);
+            $adminnodes = $xpath->query('/users/user[username="admin"]');
+            if ($adminnodes === false || $adminnodes->length === 0) {
+                fulldelete($tempdir);
+                return ['path' => $originalpath, 'tempdir' => null];
+            }
+
+            $removed = $adminnodes->length;
+            for ($i = $adminnodes->length - 1; $i >= 0; $i--) {
+                $node = $adminnodes->item($i);
+                if ($node && $node->parentNode) {
+                    $node->parentNode->removeChild($node);
+                }
+            }
+
+            if ($dom->save($usersfile) === false) {
+                throw new Exception('Unable to save users.xml after removing admin user');
+            }
+
+            $filestemp = get_directory_list($extractdir, '', false, true, true);
+            $files = [];
+            foreach ($filestemp as $archivepath) {
+                $files[$archivepath] = $extractdir . '/' . $archivepath;
+            }
+
+            $sanitizedfile = $tempdir . '/backup.mbz';
+            if (!$packer->archive_to_pathname($files, $sanitizedfile)) {
+                throw new Exception('Unable to rebuild MBZ backup after removing admin user');
+            }
+
+            $logs[] = "Removed {$removed} admin user(s) from backup users.xml";
+
+            return ['path' => $sanitizedfile, 'tempdir' => $tempdir];
+        } catch (Throwable $e) {
+            if (is_dir($tempdir)) {
+                fulldelete($tempdir);
+            }
+            throw $e;
         }
     }
 
