@@ -16,6 +16,7 @@
 
 /**
  * phpcs:disable moodle.Files.MoodleInternal.MoodleInternalGlobalState
+ * phpcs:disable Generic.CodeAnalysis.EmptyStatement.DetectedCatch
  *
  * Restore course file.
  *
@@ -247,7 +248,7 @@ class restore_course extends scheduled_task {
         } catch (Exception $e) {
             try {
                 $transaction->rollback($e);
-            } catch (Exception $e) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+            } catch (Exception $e) {
                 // Keep original error in the logs below.
             }
             $controller->destroy();
