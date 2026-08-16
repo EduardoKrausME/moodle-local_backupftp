@@ -247,7 +247,7 @@ class restore_course extends scheduled_task {
         } catch (Exception $e) {
             try {
                 $transaction->rollback($e);
-            } catch (Exception $e) { // phpcs:disable
+            } catch (Exception $e) { // phpcs:disable Generic.CodeAnalysis.EmptyStatement.DetectedCatch
                 // Keep original error in the logs below.
             }
             $controller->destroy();
