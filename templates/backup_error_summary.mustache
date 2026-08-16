@@ -1,0 +1,19 @@
+{{!
+    @template local_backupftp/backup_error_summary
+
+    Example context (json):
+    {
+        "errorcount": 2,
+        "reporturl": "https://moodle.local/local/backupftp/report-backup.php",
+        "showreportlink": true
+    }
+}}
+<div class="alert alert-danger" role="alert">
+    <h3 class="h5 mb-2">{{#str}}backup_errors_found_title, local_backupftp{{/str}}</h3>
+    <p class="mb-2">{{#str}}backup_errors_found_desc, local_backupftp, {{errorcount}}{{/str}}</p>
+    {{#showreportlink}}
+        <a class="btn btn-danger btn-sm" href="{{{reporturl}}}">
+            {{#str}}backup_errors_open_report, local_backupftp{{/str}}
+        </a>
+    {{/showreportlink}}
+</div>
