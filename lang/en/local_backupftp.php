@@ -22,6 +22,8 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die;
+
 $string['access_course'] = '<a style="color:#a41d1d" target="_blank" href="{$a->course_url}">Access the course</a>';
 $string['adding_to_category'] = 'It will be added to the category {$a->categoria}';
 $string['already_added_status'] = 'Already added and the status is {$a->status}';
