@@ -321,11 +321,19 @@ class restore {
                 if ($existing) {
                     $user->id = (int) $existing->id;
                     unset($user->password);
-                    user_update_user($user, false, false);
+                    if (method_exists(\core\user::class, 'update_user')) {
+                        \core\user::update_user($user, false, false);
+                    } else {
+                        user_update_user($user, false, false);
+                    }
                     $summary->updated++;
                 } else {
                     $user->password = random_string(32);
-                    $userid = user_create_user($user, true, false);
+                    if (method_exists(\core\user::class, 'create_user')) {
+                        $userid = \core\user::create_user($user, true, false);
+                    } else {
+                        $userid = user_create_user($user, true, false);
+                    }
                     if ($user->auth === 'manual') {
                         set_user_preference('auth_forcepasswordchange', 1, $userid);
                     }
