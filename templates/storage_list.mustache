@@ -1,0 +1,115 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_backupftp/storage_list
+
+    Configured backup destinations and a modal provider picker.
+
+    Example context (json):
+    {
+        "hasinstances": true,
+        "instances": [
+            {
+                "name": "Local backups",
+                "typename": "Local",
+                "enabled": true,
+                "editurl": "/local/backupftp/storage.php?id=1"
+            }
+        ],
+        "hasproviders": true,
+        "providers": [
+            {
+                "name": "Local",
+                "url": "/local/backupftp/storage.php?type=local"
+            }
+        ]
+    }
+}}
+
+<div class="local-backupftp-storage-list">
+    <h3>{{#str}}storage_instances, local_backupftp{{/str}}</h3>
+
+    {{#hasinstances}}
+        <div class="table-responsive">
+            <table class="generaltable table table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">{{#str}}storage_name, local_backupftp{{/str}}</th>
+                        <th scope="col">{{#str}}storage_type, local_backupftp{{/str}}</th>
+                        <th scope="col">{{#str}}status, local_backupftp{{/str}}</th>
+                        <th scope="col">{{#str}}storage_actions, local_backupftp{{/str}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#instances}}
+                        <tr>
+                            <td>{{name}}</td>
+                            <td>{{typename}}</td>
+                            <td>
+                                {{#enabled}}
+                                    <span class="badge badge-success">{{#str}}storage_enabled, local_backupftp{{/str}}</span>
+                                {{/enabled}}
+                                {{^enabled}}
+                                    <span class="badge badge-secondary">{{#str}}storage_disabled, local_backupftp{{/str}}</span>
+                                {{/enabled}}
+                            </td>
+                            <td>
+                                <a class="btn btn-outline-primary btn-sm" href="{{editurl}}">
+                                    {{#str}}storage_edit, local_backupftp{{/str}}
+                                </a>
+                            </td>
+                        </tr>
+                    {{/instances}}
+                </tbody>
+            </table>
+        </div>
+    {{/hasinstances}}
+    {{^hasinstances}}
+        <div class="alert alert-info">{{#str}}storage_none, local_backupftp{{/str}}</div>
+    {{/hasinstances}}
+
+    <button type="button" class="btn btn-primary" id="local-backupftp-storage-add" {{^hasproviders}}disabled{{/hasproviders}}>
+        {{#str}}storage_add_new, local_backupftp{{/str}}
+    </button>
+
+    <template id="local-backupftp-storage-providers">
+        <div class="list-group">
+            {{#providers}}
+                <a class="list-group-item list-group-item-action" href="{{url}}">{{name}}</a>
+            {{/providers}}
+        </div>
+    </template>
+</div>
+
+{{#js}}
+    require(['core/modal', 'core/str', 'core/notification'], function(Modal, Str, Notification) {
+        const button = document.getElementById('local-backupftp-storage-add');
+        const providers = document.getElementById('local-backupftp-storage-providers');
+        if (!button || !providers || button.disabled) {
+            return;
+        }
+
+        button.addEventListener('click', function() {
+            Modal.create({
+                title: Str.get_string('storage_choose', 'local_backupftp'),
+                body: providers.innerHTML,
+                show: true,
+                removeOnClose: true,
+            }).catch(Notification.exception);
+        });
+    });
+{{/js}}

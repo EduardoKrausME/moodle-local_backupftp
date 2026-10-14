@@ -94,29 +94,30 @@ echo $OUTPUT->render_from_template('local_backupftp/page_navigation', [
 if ($form) {
     $form->display();
 } else {
-    echo html_writer::tag('h3', get_string('storage_instances', 'local_backupftp'));
-    $instances = manager::instances();
-    if (!$instances) {
-        echo $OUTPUT->notification(get_string('storage_none', 'local_backupftp'), 'info');
-    }
-    foreach ($instances as $instance) {
-        $typecaption = isset($types[$instance->type]) ? $types[$instance->type] : $instance->type;
-        $label = s($instance->name) . ' (' . s($typecaption) . ')';
-        $label .= $instance->enabled ? ' - ' . get_string('storage_enabled', 'local_backupftp') : '';
-        echo html_writer::div(
-            html_writer::span($label, 'mr-3') .
-            html_writer::link(new moodle_url('/local/backupftp/storage.php', ['id' => $instance->id]),
-                get_string('storage_edit', 'local_backupftp'), ['class' => 'btn btn-outline-primary btn-sm']),
-            'card card-body mb-2'
-        );
+    $instances = [];
+    foreach (manager::instances() as $instance) {
+        $instances[] = [
+            'name' => $instance->name,
+            'typename' => $types[$instance->type] ?? $instance->type,
+            'enabled' => (bool) $instance->enabled,
+            'editurl' => (new moodle_url('/local/backupftp/storage.php',
+                ['id' => $instance->id]))->out(false),
+        ];
     }
 
-    echo html_writer::tag('h3', get_string('storage_choose', 'local_backupftp'));
+    $providers = [];
     foreach ($types as $key => $label) {
-        echo html_writer::div(html_writer::link(
-            new moodle_url('/local/backupftp/storage.php', ['type' => $key]),
-            s($label), ['class' => 'btn btn-primary']),
-            'mb-2');
+        $providers[] = [
+            'name' => $label,
+            'url' => (new moodle_url('/local/backupftp/storage.php', ['type' => $key]))->out(false),
+        ];
     }
+
+    echo $OUTPUT->render_from_template('local_backupftp/storage_list', [
+        'instances' => $instances,
+        'hasinstances' => !empty($instances),
+        'providers' => $providers,
+        'hasproviders' => !empty($providers),
+    ]);
 }
 echo $OUTPUT->footer();
