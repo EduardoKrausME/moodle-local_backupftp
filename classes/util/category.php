@@ -86,9 +86,7 @@ class category {
      * @throws Exception
      */
     public static function get_categoryid(string $remotefile, array &$logs): int {
-        global $DB;
-
-        $ftpenable = get_config('local_backupftp', 'ftpenable');
+        $ftpenable = get_config('local_backupftp', 'ftpenable') && isset(get_config('local_backupftp', 'ftpenable')[3]);
         $localfileenable = get_config('local_backupftp', 'localfileenable');
 
         if ($ftpenable) {
