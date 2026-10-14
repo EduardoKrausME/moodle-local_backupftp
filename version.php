@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die;
 
-$plugin->version = 2026101402;
-$plugin->release = '2.4.0';
+$plugin->version = 2026101403;
+$plugin->release = '2.4.1';
 $plugin->requires = 2020011900;
 $plugin->maturity = MATURITY_STABLE;
 $plugin->component = "local_backupftp";
