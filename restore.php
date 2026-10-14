@@ -26,11 +26,9 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use local_backupftp\localfilepath;
 use local_backupftp\renderer\restore;
-use local_backupftp\server\ftp;
+use local_backupftp\storage\manager;
 use local_backupftp\transfer_client;
-use local_backupftp\util\category;
 
 require(__DIR__ . '/../../config.php');
 
@@ -53,11 +51,8 @@ echo $OUTPUT->render_from_template("local_backupftp/page_navigation", [
     "backurl" => new moodle_url("/local/backupftp/"),
 ]);
 
-// Config (used by list/render helpers below).
-$ftppasta = get_config('local_backupftp', 'ftppasta');
-$localfilepath = localfilepath::get_path();
-$ftpenable = get_config('local_backupftp', 'ftpenable') && isset(get_config('local_backupftp', 'ftpenable')[3]);
-$localfileenable = get_config('local_backupftp', 'localfileenable');
+// Storage providers are discovered through installed Moodle subplugins.
+$storageinstances = manager::instances(true);
 
 // Handle POST: add selected FTP/local files to restore queue.
 $files = optional_param_array('file', [], PARAM_RAW_TRIMMED);
@@ -65,19 +60,28 @@ if (!empty($files)) {
     require_sesskey();
 
     foreach ($files as $remotefile) {
-        $remotefile = restore::clean_remotefile($remotefile);
+        $separator = strpos($remotefile, '|');
+        if ($separator === false) {
+            continue;
+        }
+        $storageid = (int) substr($remotefile, 0, $separator);
+        $remotefile = restore::clean_remotefile(substr($remotefile, $separator + 1));
+        if (empty($storageinstances[$storageid])) {
+            continue;
+        }
+        $provider = manager::from_record($storageinstances[$storageid]);
         if ($remotefile === '') {
             continue;
         }
 
-        if (!restore::is_allowed_restore_target($remotefile, $ftpenable, $ftppasta, $localfileenable, $localfilepath)) {
+        if (!$provider->owns($remotefile)) {
             continue;
         }
 
         $exists = $DB->record_exists_select(
             'local_backupftp_restore',
-            'remotefile = :remotefile AND source = :source AND status <> :status',
-            ['remotefile' => $remotefile, 'source' => 'configured', 'status' => 'completed']
+            'remotefile = :remotefile AND storageid = :storageid AND source = :source AND status <> :status',
+            ['remotefile' => $remotefile, 'storageid' => $storageid, 'source' => 'configured', 'status' => 'completed']
         );
 
         if ($exists) {
@@ -86,6 +90,7 @@ if (!empty($files)) {
 
         $data = (object) [
             'remotefile' => $remotefile,
+            'storageid' => $storageid,
             'source' => 'configured',
             'sourcewwwroot' => '',
             'sourceip' => '',
@@ -160,18 +165,23 @@ echo $OUTPUT->render_from_template('local_backupftp/remote_transfer_form', [
 
 echo restore::render_remote_transfer_restore_summary();
 
-// Validate local path (avoid accidentally pointing to "/").
-if (strlen($localfilepath) < 4) {
-    $localfilepath = '';
-    $localfileenable = false;
+// Display all configured providers in the restore selection form.
+$storages = [];
+foreach ($storageinstances as $instance) {
+    try {
+        $provider = manager::from_record($instance);
+        $storages[] = [
+            'name' => $instance->name . ' (' . $provider::get_label() . ')',
+            'files' => restore::render_storage_files($provider),
+        ];
+    } catch (\Throwable $e) {
+        echo $OUTPUT->notification(s($instance->name) . ' - ' . s($e->getMessage()), 'notifyproblem');
+    }
 }
-
-// Render existing FTP/local selection form.
 echo $OUTPUT->render_from_template('local_backupftp/restore_form', [
     'actionurl' => $PAGE->url->out(false),
     'sesskey' => sesskey(),
-    'list_files_ftp' => $ftpenable ? restore::list_filesfromftp($ftppasta) : '',
-    'list_files_local' => $localfileenable ? restore::list_filesfromlocal($localfilepath) : '',
+    'storages' => $storages,
 ]);
 
 echo $OUTPUT->footer();

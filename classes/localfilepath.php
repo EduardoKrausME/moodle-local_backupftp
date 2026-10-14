@@ -46,9 +46,24 @@ class localfilepath {
      * @throws Exception
      */
     public static function get_path(): string {
-        global $CFG;
+        global $CFG, $DB;
 
-        $path = get_config('local_backupftp', 'localfilepath');
+        $path = '';
+        $table = new \xmldb_table('local_backupftp_storage');
+        if ($DB->get_manager()->table_exists($table)) {
+            foreach (\local_backupftp\storage\manager::instances(true) as $record) {
+                if ($record->type === 'local') {
+                    $config = json_decode($record->config, true);
+                    $path = trim((string) ($config['path'] ?? ''));
+                    if ($path !== '') {
+                        break;
+                    }
+                }
+            }
+        }
+        if ($path === '') {
+            $path = get_config('local_backupftp', 'localfilepath');
+        }
         if (trim($path) === '') {
             $path = $CFG->dataroot . DIRECTORY_SEPARATOR . 'backup';
         }

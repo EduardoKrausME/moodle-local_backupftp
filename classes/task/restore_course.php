@@ -30,7 +30,8 @@ namespace local_backupftp\task;
 use backup;
 use core\task\scheduled_task;
 use Exception;
-use local_backupftp\server\ftp;
+use local_backupftp\storage\manager;
+use local_backupftp\util\file;
 use local_backupftp\transfer_client;
 use local_backupftp\util\category;
 use restore_controller;
@@ -42,7 +43,6 @@ defined('MOODLE_INTERNAL') || die;
 
 require_once("{$CFG->dirroot}/backup/util/includes/backup_includes.php");
 require_once("{$CFG->dirroot}/backup/util/includes/restore_includes.php");
-require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
 require_once("{$CFG->dirroot}/course/classes/category.php");
 
 /**
@@ -70,8 +70,7 @@ class restore_course extends scheduled_task {
         global $DB, $CFG;
 
         require_once("{$CFG->dirroot}/backup/util/includes/restore_includes.php");
-        require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
-        require_once("{$CFG->dirroot}/course/classes/category.php");
+                require_once("{$CFG->dirroot}/course/classes/category.php");
 
         $cutoff = time() - 6 * 3600;
         $sql = "
@@ -154,7 +153,7 @@ class restore_course extends scheduled_task {
         if ($source === 'transfer') {
             $result = $this->download_transfer_file($record, $localfile, $logs);
         } else {
-            $result = $this->copy_configured_source_file($remotefile, $localfile, $logs);
+            $result = $this->copy_configured_source_file($remotefile, $localfile, $logs, (int) ($record->storageid ?? 0));
         }
         if ($result['status'] !== 'completed') {
             return ['status' => $result['status'], 'logs' => $logs];
@@ -163,7 +162,7 @@ class restore_course extends scheduled_task {
 
         $logs[] = get_string('processing_file', 'local_backupftp', [
             'remote_file' => $remotefile,
-            'size' => ftp::format_bytes($size),
+            'size' => file::format_bytes($size),
         ]);
 
         $packer = get_file_packer('application/vnd.moodle.backup');
@@ -185,7 +184,7 @@ class restore_course extends scheduled_task {
         if ($source === 'transfer') {
             $categoria = category::get_categoryid_from_backup_path($remotefile, $logs);
         } else {
-            $categoria = category::get_categoryid($remotefile, $logs);
+            $categoria = category::get_categoryid($remotefile, $logs, (int) ($record->storageid ?? 0));
         }
         $logs[] = get_string('adding_to_category', 'local_backupftp', ['categoria' => $categoria]);
 
@@ -286,68 +285,42 @@ class restore_course extends scheduled_task {
         }
 
         $size = transfer_client::download_backup($wwwroot, $ip, $token, (string) $record->remotefile, $localfile, $logs);
-        $logs[] = get_string('file_found_and_downloaded', 'local_backupftp') . " - " . ftp::format_bytes($size);
+        $logs[] = get_string('file_found_and_downloaded', 'local_backupftp') . " - " . file::format_bytes($size);
 
         return ['status' => 'completed', 'size' => $size];
     }
 
     /**
-     * Copy/download a file using the configured FTP/local source, preserving legacy behavior.
+     * Copy an MBZ from its owning configured storage provider.
      *
-     * @param string $remotefile Remote/local file path.
-     * @param string $localfile Local target path.
-     * @param array $logs Logs by reference.
-     * @return array{status:string,size:int}
-     * @throws \coding_exception
-     * @throws \dml_exception
-     * @throws \Exception
+     * @param string $remotefile Storage-specific file location.
+     * @param string $localfile Destination temporary MBZ.
+     * @param array $logs Progress information.
+     * @param int $storageid Explicit storage id, or 0 for legacy jobs.
+     * @return array
      */
-    private function copy_configured_source_file(string $remotefile, string $localfile, array &$logs): array {
-        $localfileenable = get_config('local_backupftp', 'localfileenable');
-        $ftpenable = get_config('local_backupftp', 'ftpenable') && isset(get_config('local_backupftp', 'ftpenable')[3]);
-
-        if ($ftpenable) {
-            $ftp = new ftp();
-            $logs = $ftp->connect($logs);
-
-            $size = ftp_size($ftp->connid, $remotefile);
-            $size = (int) preg_replace('/[^0-9]/', '', $size);
-            if ($size < 10) {
-                $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
-                return ['status' => 'error', 'size' => 0];
+    private function copy_configured_source_file(
+        string $remotefile,
+        string $localfile,
+        array &$logs,
+        int $storageid = 0
+    ): array {
+        $records = $storageid ? [manager::get($storageid)->record()] : manager::instances(true);
+        foreach ($records as $record) {
+            if (!$record->enabled) {
+                continue;
             }
-
-            $fileresource = fopen($localfile, 'wb');
-            if ($fileresource === false) {
-                $logs[] = get_string('transfer_restore_tempfile_error', 'local_backupftp');
-                return ['status' => 'error', 'size' => 0];
+            $provider = manager::from_record($record);
+            if (!$provider->owns($remotefile)) {
+                continue;
             }
-
-            if (ftp_fget($ftp->connid, $fileresource, $remotefile)) {
-                fclose($fileresource);
-                $logs[] = get_string('file_found_and_downloaded', 'local_backupftp');
-            } else {
-                fclose($fileresource);
-                @unlink($localfile);
-                $logs[] = get_string('error_downloading_file', 'local_backupftp', ['error' => json_encode(error_get_last())]);
-                return ['status' => 'error', 'size' => 0];
+            if ($provider->fetch($remotefile, $localfile, $logs)) {
+                $size = is_file($localfile) ? (int) filesize($localfile) : 0;
+                return ['status' => $size >= 10 ? 'completed' : 'error', 'size' => $size];
             }
-        } else if ($localfileenable) {
-            $size = is_file($remotefile) ? (int) filesize($remotefile) : 0;
-            if ($size < 10) {
-                $logs[] = get_string('ftp_remote_file_size', 'local_backupftp', ['size' => $size]);
-                return ['status' => 'error', 'size' => 0];
-            }
-            copy($remotefile, $localfile);
-            mtrace(' Size: ' . filesize($localfile));
-        } else {
-            $logs[] = 'plugin Disable';
-            return ['status' => 'error', 'size' => 0];
+            break;
         }
-
-        clearstatcache(true, $localfile);
-        $size = is_file($localfile) ? (int) filesize($localfile) : 0;
-
-        return ['status' => 'completed', 'size' => $size];
+        $logs[] = get_string('error_downloading_file', 'local_backupftp', ['error' => $remotefile]);
+        return ['status' => 'error', 'size' => 0];
     }
 }

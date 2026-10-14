@@ -28,5 +28,20 @@
  * @return bool
  */
 function xmldb_local_backupftp_install() {
+    global $DB, $CFG;
+
+    // New installations always begin with one enabled local storage destination.
+    $DB->insert_record('local_backupftp_storage', (object) [
+        'type' => 'local',
+        'name' => 'Local storage',
+        'enabled' => 1,
+        'config' => json_encode([
+            'path' => $CFG->dataroot . '/backup',
+            'organize' => 1,
+            'names' => 1,
+        ]),
+        'timecreated' => time(),
+        'timemodified' => time(),
+    ]);
     return true;
 }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/backupftp/db" VERSION="20230414" COMMENT="Backup data"
+<XMLDB PATH="local/backupftp/db" VERSION="20261014" COMMENT="Backup data"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
     <TABLES>
@@ -13,6 +13,7 @@
                 <FIELD NAME="timestart" TYPE="int" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="timeend" TYPE="int" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
             </FIELDS>
+                <FIELD NAME="storageids" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
             </KEYS>
@@ -23,6 +24,7 @@
                 <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="remotefile" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="source" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" DEFAULT="configured"/>
+                <FIELD NAME="storageid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
                 <FIELD NAME="sourcewwwroot" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="sourceip" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="sourcetoken" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
@@ -58,7 +60,22 @@
                 <INDEX NAME="tokenhash_uix" UNIQUE="true" FIELDS="tokenhash"/>
                 <INDEX NAME="timeexpires_ix" UNIQUE="false" FIELDS="timeexpires"/>
             </INDEXES>
+        </TABLE>        <TABLE NAME="local_backupftp_storage" COMMENT="Configured storage destinations">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="type" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="enabled" TYPE="int" LENGTH="1" NOTNULL="true" SEQUENCE="false" DEFAULT="1"/>
+                <FIELD NAME="config" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="type_ix" UNIQUE="false" FIELDS="type"/>
+            </INDEXES>
         </TABLE>
-
     </TABLES>
 </XMLDB>

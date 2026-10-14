@@ -87,5 +87,73 @@ function xmldb_local_backupftp_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026062900, 'local', 'backupftp');
     }
 
+    if ($oldversion < 2026101402) {
+        $storage = new xmldb_table('local_backupftp_storage');
+        if (!$dbman->table_exists($storage)) {
+            $storage->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+            $storage->add_field('type', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL);
+            $storage->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL);
+            $storage->add_field('enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1');
+            $storage->add_field('config', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL);
+            $storage->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+            $storage->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+            $storage->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $storage->add_index('type_ix', XMLDB_INDEX_NOTUNIQUE, ['type']);
+            $dbman->create_table($storage);
+        }
+
+        $course = new xmldb_table('local_backupftp_course');
+        $coursefield = new xmldb_field('storageids', XMLDB_TYPE_TEXT);
+        if (!$dbman->field_exists($course, $coursefield)) {
+            $dbman->add_field($course, $coursefield);
+        }
+
+        $restore = new xmldb_table('local_backupftp_restore');
+        $restorefield = new xmldb_field('storageid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'source');
+        if (!$dbman->field_exists($restore, $restorefield)) {
+            $dbman->add_field($restore, $restorefield);
+        }
+
+        // Upgrade is idempotent and does not overwrite instances created by administrators.
+        $time = time();
+        $oldorganize = get_config('local_backupftp', 'ftporganize');
+        $oldnames = get_config('local_backupftp', 'ftpnames');
+        // Unset flags historically defaulted to enabled in the administration form.
+        $organize = $oldorganize === false ? 1 : (int) (bool) $oldorganize;
+        $names = $oldnames === false ? 1 : (int) (bool) $oldnames;
+        if (get_config('local_backupftp', 'localfileenable') &&
+                !$DB->record_exists('local_backupftp_storage', ['type' => 'local'])) {
+            $path = trim((string) get_config('local_backupftp', 'localfilepath'));
+            if ($path === '') {
+                global $CFG;
+                $path = $CFG->dataroot . '/backup';
+            }
+            $DB->insert_record('local_backupftp_storage', (object) [
+                'type' => 'local', 'name' => 'Local storage', 'enabled' => 1,
+                'config' => json_encode(['path' => $path, 'organize' => $organize, 'names' => $names]),
+                'timecreated' => $time, 'timemodified' => $time,
+            ]);
+        }
+
+        $ftpurl = trim((string) get_config('local_backupftp', 'ftpurl'));
+        if (get_config('local_backupftp', 'ftpenable') && $ftpurl !== '' &&
+                !$DB->record_exists('local_backupftp_storage', ['type' => 'ftp'])) {
+            $DB->insert_record('local_backupftp_storage', (object) [
+                'type' => 'ftp', 'name' => 'FTP', 'enabled' => 1,
+                'config' => json_encode([
+                    'url' => $ftpurl,
+                    'username' => (string) get_config('local_backupftp', 'ftpusername'),
+                    'password' => (string) get_config('local_backupftp', 'ftppassword'),
+                    'folder' => (string) get_config('local_backupftp', 'ftppasta'),
+                    'passive' => (int) (bool) get_config('local_backupftp', 'ftppasv'),
+                    'organize' => $organize, 'names' => $names,
+                ]),
+                'timecreated' => $time, 'timemodified' => $time,
+            ]);
+        }
+
+        upgrade_plugin_savepoint(true, 2026101402, 'local', 'backupftp');
+    }
+
     return true;
 }

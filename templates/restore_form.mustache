@@ -31,7 +31,8 @@
 
     <p class="text-muted">{{#str}}restore_file_select_help, local_backupftp{{/str}}</p>
 
-    <h2>{{#str}}settings_ftp, local_backupftp{{/str}}</h2>
+    {{#storages}}
+    <h2>{{name}}</h2>
     <div class="local-backupftp-tree" data-region="local-backupftp-tree">
         <div class="local-backupftp-tree-toolbar local-backupftp-tree-actions">
             <button type="button" class="btn btn-sm btn-outline-primary" data-action="local-backupftp-select-all">
@@ -41,23 +42,9 @@
                 {{#str}}deselect_all, local_backupftp{{/str}}
             </button>
         </div>
-        {{{list_files_ftp}}}
+        {{{files}}}
     </div>
-
-    <hr>
-
-    <h2>{{#str}}settings_local, local_backupftp{{/str}}</h2>
-    <div class="local-backupftp-tree" data-region="local-backupftp-tree">
-        <div class="local-backupftp-tree-toolbar local-backupftp-tree-actions">
-            <button type="button" class="btn btn-sm btn-outline-primary" data-action="local-backupftp-select-all">
-                {{#str}}select_all, local_backupftp{{/str}}
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="local-backupftp-deselect-all">
-                {{#str}}deselect_all, local_backupftp{{/str}}
-            </button>
-        </div>
-        {{{list_files_local}}}
-    </div>
+    {{/storages}}
 
     <br>
     <input class="btn btn-primary" type="submit" value="{{#str}}submit, local_backupftp{{/str}}">

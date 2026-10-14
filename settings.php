@@ -71,64 +71,6 @@ $settings->add(new admin_setting_configcheckbox('local_backupftp/settingrootuser
 $settings->add(new admin_setting_configcheckbox('local_backupftp/settingrootanonymize',
     get_string('settings_rootsettinganonymize', 'local_backupftp'), '', 0));
 
-$settings->add(new admin_setting_configcheckbox('local_backupftp/ftporganize',
-    get_string('settings_ftporganize', 'local_backupftp'),
-    get_string('settings_ftporganize_desc', 'local_backupftp'),
-    1
-));
-
-$settings->add(new admin_setting_configcheckbox('local_backupftp/ftpnames',
-    get_string('settings_ftpnames', 'local_backupftp'),
-    get_string('settings_ftpnames_desc', 'local_backupftp'),
-    1
-));
-
-$settings->add(new admin_setting_heading('local_backupftp/settings_local',
-    get_string('settings_local', 'local_backupftp'), ''));
-
-$settings->add(new admin_setting_configcheckbox('local_backupftp/localfileenable',
-    get_string('settings_localfile', 'local_backupftp'),
-    get_string('settings_localfile_desc', 'local_backupftp'),
-    1
-));
-
-$settings->add(new admin_setting_configtext('local_backupftp/localfilepath',
-    get_string('settings_localfilepath', 'local_backupftp'),
-    get_string('settings_localfilepath_desc', 'local_backupftp'),
-    ''
-));
-
-$settings->add(new admin_setting_heading('local_backupftp/settings_ftp',
-    get_string('settings_ftp', 'local_backupftp'), ''));
-
-$settings->add(new admin_setting_configcheckbox('local_backupftp/ftpenable',
-    get_string('settings_ftpenable', 'local_backupftp'), '', 0));
-
-$settings->add(new admin_setting_configtext('local_backupftp/ftpurl',
-    get_string('settings_ftpurl', 'local_backupftp'),
-    get_string('settings_ftpurl_desc', 'local_backupftp'),
-    ''
-));
-
-$settings->add(new admin_setting_configcheckbox('local_backupftp/ftppasv',
-    get_string('settings_ftppasv', 'local_backupftp'),
-    get_string('settings_ftppasv_desc', 'local_backupftp'),
-    0
-));
-
-$settings->add(new admin_setting_configtext('local_backupftp/ftpusername',
-    get_string('settings_ftpusername', 'local_backupftp'), '', ''));
-
-// Harden: password field.
-$settings->add(new admin_setting_configpasswordunmask('local_backupftp/ftppassword',
-    get_string('settings_ftppassword', 'local_backupftp'), '', ''));
-
-$settings->add(new admin_setting_configtext('local_backupftp/ftppasta',
-    get_string('settings_ftppasta', 'local_backupftp'),
-    get_string('settings_ftppasta_desc', 'local_backupftp'),
-    ''
-));
-
 $settings->add(new admin_setting_heading('local_backupftp/settings_transfer_api',
     get_string('settings_transfer_api', 'local_backupftp'),
     get_string('settings_transfer_api_desc', 'local_backupftp')

@@ -26,6 +26,8 @@ require(__DIR__ . '/../../config.php');
 
 global $DB, $PAGE, $OUTPUT;
 
+use local_backupftp\storage\manager;
+
 $context = context_system::instance();
 
 $PAGE->set_context($context);
@@ -52,10 +54,20 @@ if ($errorcount > 0) {
     ]);
 }
 
+// Enabled destinations are selected per queued backup, not read from global settings at cron time.
+$enabledstorages = manager::instances(true);
+$selectedstorages = optional_param_array('storage', [], PARAM_INT);
+$validstorageids = array_values(array_intersect(array_map('intval', $selectedstorages),
+    array_map('intval', array_keys($enabledstorages))));
+
 // Handle POST: add courses from selected categories to backup queue.
 $categoryids = optional_param_array('category', [], PARAM_INT);
 if (!empty($categoryids)) {
     require_sesskey();
+    if (!$validstorageids) {
+        echo $OUTPUT->notification(get_string('storage_select', 'local_backupftp'), 'notifyproblem');
+        $categoryids = [];
+    }
 
     foreach ($categoryids as $categoryid) {
         $courses = $DB->get_records('course', ['category' => $categoryid], 'id', 'id,fullname,category');
@@ -75,6 +87,7 @@ if (!empty($categoryids)) {
 
             $data = (object) [
                 'courseid' => $courseid,
+                'storageids' => json_encode($validstorageids),
                 'status' => 'waiting',
                 'logs' => '',
                 'timecreated' => time(),
@@ -101,12 +114,26 @@ echo $OUTPUT->render_from_template('local_backupftp/backup_action_cards', [
     'taskurl' => new moodle_url('/local/backupftp/run-task.php'),
 ]);
 
+// Show every configured storage system and the currently usable destinations.
+$storages = [];
+$types = manager::types();
+foreach (manager::instances() as $instance) {
+    $storages[] = [
+        'id' => $instance->id,
+        'name' => $instance->name,
+        'type' => $types[$instance->type] ?? $instance->type,
+        'enabled' => (bool) $instance->enabled,
+    ];
+}
+
 // Form.
 echo $OUTPUT->render_from_template('local_backupftp/backup_form', [
     'actionurl' => $PAGE->url->out(false),
     'sesskey' => sesskey(),
     'tree' => $OUTPUT->render_from_template('local_backupftp/backup_tree_toolbar', []),
     'categorias' => \local_backupftp\renderer\backup::categorias(0),
+    'storages' => $storages,
+    'storageurl' => new moodle_url('/local/backupftp/storage.php'),
 ]);
 
 echo $OUTPUT->footer();

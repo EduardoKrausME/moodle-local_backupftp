@@ -27,7 +27,7 @@ namespace local_backupftp\util;
 use core_course_category;
 use core_text;
 use Exception;
-use local_backupftp\localfilepath;
+use local_backupftp\storage\manager;
 use moodle_url;
 
 /**
@@ -85,21 +85,18 @@ class category {
      * @return int
      * @throws Exception
      */
-    public static function get_categoryid(string $remotefile, array &$logs): int {
-        $ftpenable = get_config('local_backupftp', 'ftpenable') && isset(get_config('local_backupftp', 'ftpenable')[3]);
-        $localfileenable = get_config('local_backupftp', 'localfileenable');
-
-        if ($ftpenable) {
-            $ftppasta = get_config('local_backupftp', 'ftppasta');
-            $categoria = ($ftppasta !== '') ? str_replace($ftppasta, '', $remotefile) : $remotefile;
-        } else if ($localfileenable) {
-            $localfilepath = localfilepath::get_path();
-            $categoria = ($localfilepath !== '') ? str_replace($localfilepath, '', $remotefile) : $remotefile;
-        } else {
-            return 0;
+    public static function get_categoryid(string $remotefile, array &$logs, int $storageid = 0): int {
+        // Existing queued restores may have storageid=0, so resolve their source by ownership.
+        $records = $storageid ? [manager::get($storageid)->record()] : manager::instances(true);
+        foreach ($records as $record) {
+            $provider = manager::from_record($record);
+            if ($provider->owns($remotefile)) {
+                $root = rtrim($provider->root(), '/\\');
+                $relative = substr($remotefile, strlen($root));
+                return self::get_categoryid_from_backup_path($relative, $logs);
+            }
         }
-
-        return self::get_categoryid_from_backup_path($categoria, $logs);
+        return self::get_categoryid_from_backup_path(basename($remotefile), $logs);
     }
 
     /**

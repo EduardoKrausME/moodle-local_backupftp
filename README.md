@@ -1,52 +1,49 @@
-# local_backupftp
+# Moodle BackupFTP
 
-This is a Moodle plugin that facilitates the backup and restoration process of courses. The plugin performs backups of Moodle courses and automatically transfers them to a configured FTP server, as well as organizes the backups by Moodle categories, making backup management more efficient. The plugin also offers a tool to restore courses directly from the FTP server.
+Backup and restore Moodle courses to independently configured storage systems.
 
-## Features
+## Storage provider plugins
 
-- **Course backup:** Performs backup of courses in Moodle and automatically sends them to the FTP.
-- **Category organization:** Organizes backups on the FTP server by course categories, simplifying management.
-- **Course restoration:** Allows restoration of courses directly from backups stored on the FTP server.
-- **Flexible configuration:** The FTP server configuration can be easily set up in Moodle’s administration panel.
-- **Course transfer between Moodle accounts:** A new Moodle can connect to a previous Moodle using `wwwroot`, optional old server IP, and a temporary token, then queue all remote backups for restore.
+Moodle discovers the provider type `backupftpstorage` through `db/subplugins.json`.
+Bundled implementations are located in `storage/ftp` and `storage/local`, with their
+own `version.php`, language strings and `classes/provider.php`. A new implementation
+extends `local_backupftp\storage\provider`, supplies its own configuration fields, and
+implements file upload, listing, ownership validation and retrieval.
 
-## Installation
+The core plugin owns the configuration instances and scheduled tasks. Each destination
+has its own name, enabled state, provider type and settings. You can create multiple
+instances of the same provider, with different hosts or local directories.
 
-1. Download the plugin from [GitHub](https://github.com/EduardoKrausME/moodle-local_backupftp).
-2. Unzip the file and place the **local_backupftp** directory in your Moodle's **local** folder.
-3. In the Moodle admin panel, navigate to **Site Administration > Notifications** to complete the installation.
-4. Configure the FTP server in the plugin settings.
+## Installation and upgrade
 
-## FTP Configuration
+Place the plugin at `local/backupftp` and install it in Site administration > Notifications.
 
-After installation, you can configure the FTP server to store the backups:
+New installations automatically have a local storage destination enabled in the Moodle
+dataroot `backup` directory. Existing installations migrate their local destination
+only when `local_backupftp/localfileenable` is enabled. FTP is migrated only when
+both `local_backupftp/ftpenable` and `local_backupftp/ftpurl` are configured.
+Migrated settings are not deleted, to preserve rollback compatibility, but they are no
+longer shown or used for new FTP backup destinations.
 
-1. Go to **Site Administration > Plugins > Local Plugins > Backup FTP**.
-2. Provide the credentials for your FTP server, such as server address, username, password, and destination folder.
-3. Ensure that Moodle has permission to write to the specified folder on the FTP.
+The upgrade is idempotent and does not create duplicate destination types when rerun.
+Use the `Storage systems` area on `local/backupftp/index.php` to configure or edit
+destinations. The former FTP and local global settings have been replaced by provider forms.
 
-## How to Use
+## Backups and restores
 
-### Performing a Backup
+On the backup screen select one or more active configured destinations along with Moodle
+categories. The selected storage IDs are persisted on each queued backup, so cron writes
+to the intended destinations even when more systems exist. Old pending jobs without a
+selection use all currently enabled destinations.
 
-- After configuring the FTP, the plugin will automatically back up the courses and transfer them to the configured FTP server.
-- The backups will be organized by category and accessible on the FTP server for easier management.
+On the restore screen, files are listed by their source destination, and queue entries
+record that destination to avoid ambiguity when multiple servers contain the same filename.
+The old HTTP transfer-token API for Moodle-to-Moodle migration is still supported.
 
-### Restoring Courses
-
-- To restore a course from the backup on the FTP, simply access the plugin's restoration tool and select the desired backup directly from the FTP server.
-
-### Restoring from another Moodle
-
-1. On the previous Moodle, create a transfer token in **Backup FTP/Local > Transfer tokens**.
-2. On the new Moodle, open **Backup FTP/Local > Restore**.
-3. Fill in the previous Moodle `wwwroot`, the old server IP if the domain was already migrated, and the token.
-4. The plugin calls the previous Moodle API, reads the backup list, shows the token validity countdown, and queues remote restores for the cron task.
-
-## Contributions
-
-If you wish to contribute to the project, feel free to open an issue or submit a pull request.
+FTP credentials are stored in destination configurations on the Moodle database; restrict
+access to database backups and the `local/backupftp:manage` capability. FTP is not encrypted
+in transit; prefer FTPS when a remote server supports it.
 
 ## License
 
-This plugin is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+GNU GPL version 3 or later. See [LICENSE](LICENSE).

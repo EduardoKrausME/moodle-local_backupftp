@@ -33,8 +33,8 @@ use core\task\scheduled_task;
 use DOMDocument;
 use DOMXPath;
 use Exception;
-use local_backupftp\localfilepath;
-use local_backupftp\server\ftp;
+use local_backupftp\storage\manager;
+use local_backupftp\util\file;
 use stored_file;
 use Throwable;
 
@@ -43,7 +43,6 @@ defined('MOODLE_INTERNAL') || die;
 
 require_once("{$CFG->dirroot}/backup/util/includes/backup_includes.php");
 require_once("{$CFG->dirroot}/backup/util/includes/restore_includes.php");
-require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
 require_once("{$CFG->dirroot}/course/classes/category.php");
 
 /**
@@ -57,7 +56,7 @@ class backup_course extends scheduled_task {
      * @return string
      */
     public function get_name() {
-        return 'Generates scheduled backups and sends them via FTP';
+        return 'Generates scheduled backups and sends them to configured storage providers';
     }
 
     /**
@@ -79,7 +78,6 @@ class backup_course extends scheduled_task {
         ];
 
         require_once("{$CFG->dirroot}/backup/util/includes/backup_includes.php");
-        require_once("{$CFG->dirroot}/local/backupftp/classes/server/ftp.php");
 
         $cutoff = time() - 6 * 3600;
         $DB->execute(
@@ -118,7 +116,7 @@ class backup_course extends scheduled_task {
             $logs = [];
 
             try {
-                $result = $this->execute_backup((int)$backupftpcourse->courseid);
+                $result = $this->execute_backup((int)$backupftpcourse->courseid, (string)($backupftpcourse->storageids ?? ''));
                 $logs = $result['logs'];
                 $status = $result['status'];
             } catch (Throwable $e) {
@@ -158,7 +156,7 @@ class backup_course extends scheduled_task {
      * @throws \Exception
      * @throws \Throwable
      */
-    private function execute_backup(int $courseid): array {
+    private function execute_backup(int $courseid, string $storageids): array {
         global $CFG;
 
         $logs = [];
@@ -190,7 +188,7 @@ class backup_course extends scheduled_task {
                 false
             );
 
-            $controller->get_plan()->get_setting('filename')->set_value(ftp::remove_accents($filename));
+            $controller->get_plan()->get_setting('filename')->set_value(file::remove_accents($filename));
             $controller->get_plan()->get_setting('users')->set_value(
                 get_config('local_backupftp', 'settingrootusers')
             );
@@ -221,12 +219,8 @@ class backup_course extends scheduled_task {
             $localtempfile = $preparedbackup['path'];
             $sanitizetempdir = $preparedbackup['tempdir'];
 
-            return $this->send_file_ftp_local(
-                $localtempfile,
-                $file->get_filename(),
-                $courseid,
-                $logs
-            );
+            return $this->send_file_to_storages($localtempfile, $file->get_filename(),
+                $courseid, $logs, $storageids);
         } finally {
             if ($sanitizetempdir && is_dir($sanitizetempdir)) {
                 fulldelete($sanitizetempdir);
@@ -323,151 +317,54 @@ class backup_course extends scheduled_task {
     }
 
     /**
-     * Send a generated backup to FTP and/or local storage.
+     * Dispatch generated MBZ to selected storage instances via the subplugin API.
      *
-     * @param string $localtempfile Readable local temporary MBZ pathname.
+     * @param string $localtempfile Prepared MBZ pathname.
      * @param string $filename Backup filename.
      * @param int $courseid Course id.
-     * @param array $logs Existing logs.
-     * @return array{status:string,logs:array}
-     * @throws Exception
+     * @param array $logs Backup log.
+     * @param string $storageids JSON list of selected instance IDs, blank for old queue entries.
+     * @return array
      */
-    private function send_file_ftp_local(
+    private function send_file_to_storages(
         string $localtempfile,
         string $filename,
         int $courseid,
-        array $logs
+        array $logs,
+        string $storageids
     ): array {
-        global $DB;
-
-        $localfileenable = (bool)get_config('local_backupftp', 'localfileenable');
-        $ftpenable = get_config('local_backupftp', 'ftpenable') && isset(get_config('local_backupftp', 'ftpenable')[3]);
-        $ftpnames = (bool)get_config('local_backupftp', 'ftpnames');
-        $ftppath = (string)get_config('local_backupftp', 'ftppasta');
-        $ftporganize = (bool)get_config('local_backupftp', 'ftporganize');
-        $localfilepath = '';
-        $status = 'completed';
-        $ftp = null;
-
-        if (!$ftpenable && !$localfileenable) {
-            $logs[] = get_string('backup_no_destination', 'local_backupftp');
-            return ['status' => 'error', 'logs' => $logs];
-        }
-
         if (!is_readable($localtempfile)) {
             $logs[] = get_string('backup_tempfile_unreadable', 'local_backupftp', $localtempfile);
             return ['status' => 'error', 'logs' => $logs];
         }
 
-        if ($localfileenable) {
-            $localfilepath = localfilepath::get_path();
+        $available = manager::instances(true);
+        $selected = $storageids === '' ? array_keys($available) : json_decode($storageids, true);
+        $selected = is_array($selected) ? array_unique(array_map('intval', $selected)) : [];
+        if (!$selected) {
+            $logs[] = get_string('backup_no_destination', 'local_backupftp');
+            return ['status' => 'error', 'logs' => $logs];
         }
 
-        $course = null;
-        if ($ftpnames) {
-            $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
-            $filename = "{$course->id} - {$course->fullname}.mbz";
-            $filename = str_replace('/', '.', $filename);
-        }
-
-        $paths = [];
-        if ($ftporganize) {
-            if (!$course) {
-                $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
-            }
-            $categoryid = (int)$course->category;
-            while ($categoryid) {
-                $category = $DB->get_record(
-                    'course_categories',
-                    ['id' => $categoryid],
-                    'id,name,parent',
-                    MUST_EXIST
-                );
-                $paths[] = $category->name;
-                $categoryid = (int)$category->parent;
-            }
-            $paths = array_reverse($paths);
-        }
-
-        $safepaths = [];
-        foreach ($paths as $path) {
-            $path = trim(str_replace(['/', '\\'], '.', $path));
-            if ($path !== '') {
-                $safepaths[] = $path;
-            }
-        }
-
-        if ($ftpenable) {
-            $ftp = new ftp();
-            $logs = $ftp->connect($logs);
-            if (!$ftp->connid) {
+        $status = 'completed';
+        foreach ($selected as $id) {
+            if (empty($available[$id])) {
+                $logs[] = get_string('storage_failure', 'local_backupftp', (string) $id);
                 $status = 'error';
+                continue;
             }
-        }
-
-        $localfolderpath = $localfilepath;
-        foreach ($safepaths as $path) {
-            if ($ftpenable && $ftp && $ftp->connid) {
-                $ftppath = "{$ftppath}/{$path}";
-                @ftp_mkdir($ftp->connid, $ftppath);
-            }
-
-            if ($localfileenable) {
-                $localfolderpath .= DIRECTORY_SEPARATOR . $path;
-                if (!make_writable_directory($localfolderpath)) {
-                    $logs[] = get_string('log:savelocal:error', 'local_backupftp', $localfolderpath);
+            try {
+                $destination = manager::from_record($available[$id]);
+                if (!$destination->store($localtempfile, $filename, $courseid, $logs)) {
+                    $logs[] = get_string('storage_failure', 'local_backupftp', $available[$id]->name);
                     $status = 'error';
                 }
-            }
-        }
-
-        if ($ftpenable && $ftp && $ftp->connid) {
-            $remotefilepath = "{$ftppath}/{$filename}";
-            @ftp_delete($ftp->connid, $remotefilepath);
-
-            $handle = @fopen($localtempfile, 'rb');
-            if (!$handle) {
-                $logs[] = get_string('backup_tempfile_unreadable', 'local_backupftp', $localtempfile);
-                $status = 'error';
-            } else {
-                $uploaded = @ftp_fput($ftp->connid, $remotefilepath, $handle);
-                fclose($handle);
-
-                if ($uploaded) {
-                    $logs[] = get_string('file_uploaded', 'local_backupftp', [
-                        'file' => $localtempfile,
-                        'remote_file' => $remotefilepath,
-                    ]);
-                } else {
-                    $error = error_get_last();
-                    $errormessage = is_array($error) && !empty($error['message']) ? $error['message'] : '-';
-                    $logs[] = get_string('backup_ftp_upload_failed', 'local_backupftp', [
-                        'remote_file' => $remotefilepath,
-                        'size' => ftp::format_bytes((int)filesize($localtempfile)),
-                        'error' => $errormessage,
-                    ]);
-                    $status = 'error';
-                }
-            }
-            $ftp->close();
-        }
-
-        if ($localfileenable) {
-            $localfile = $ftporganize
-                ? $localfolderpath . DIRECTORY_SEPARATOR . $filename
-                : $localfilepath . DIRECTORY_SEPARATOR . $filename;
-
-            if (!make_writable_directory(dirname($localfile))) {
-                $logs[] = get_string('log:savelocal:error', 'local_backupftp', $localfile);
-                $status = 'error';
-            } else if (@copy($localtempfile, $localfile)) {
-                $logs[] = get_string('log:savelocal:success', 'local_backupftp', $localfile);
-            } else {
-                $logs[] = get_string('log:savelocal:error', 'local_backupftp', $localfile);
+            } catch (\Throwable $e) {
+                $logs[] = get_string('storage_failure', 'local_backupftp', $available[$id]->name) .
+                    ' ' . $e->getMessage();
                 $status = 'error';
             }
         }
-
         return ['status' => $status, 'logs' => $logs];
     }
 }
