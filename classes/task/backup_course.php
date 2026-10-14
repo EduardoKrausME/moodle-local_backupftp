@@ -164,6 +164,7 @@ class backup_course extends scheduled_task {
         $logs = [];
         $controller = null;
         $file = null;
+        $localtempfile = null;
         $sanitizetempdir = null;
 
         $logs[] = get_string('backup_creation_parameters', 'local_backupftp') . "\n
@@ -210,12 +211,13 @@ class backup_course extends scheduled_task {
 
             $logs[] = 'MBZ file created';
 
-            $contenthash = $file->get_contenthash();
-            $l1 = $contenthash[0] . $contenthash[1];
-            $l2 = $contenthash[2] . $contenthash[3];
-            $localtempfile = "{$CFG->dataroot}/filedir/{$l1}/{$l2}/{$contenthash}";
+            // Use Moodle's File API so backups also work with alternative file systems (e.g. S3).
+            $localtempfile = $file->copy_content_to_temp('local_backupftp', 'backup_');
+            if ($localtempfile === false) {
+                throw new Exception('Unable to copy MBZ backup from Moodle file storage to a temporary file');
+            }
 
-            $preparedbackup = $this->remove_admin_from_backup($file, $localtempfile, $logs);
+            $preparedbackup = $this->remove_admin_from_backup($localtempfile, $logs);
             $localtempfile = $preparedbackup['path'];
             $sanitizetempdir = $preparedbackup['tempdir'];
 
@@ -228,6 +230,9 @@ class backup_course extends scheduled_task {
         } finally {
             if ($sanitizetempdir && is_dir($sanitizetempdir)) {
                 fulldelete($sanitizetempdir);
+            }
+            if (is_string($localtempfile) && is_file($localtempfile)) {
+                @unlink($localtempfile);
             }
             if ($file instanceof stored_file) {
                 $file->delete();
@@ -242,8 +247,7 @@ class backup_course extends scheduled_task {
     /**
      * Remove the admin user from users.xml while keeping all other backup users.
      *
-     * @param stored_file $file Generated Moodle backup.
-     * @param string $originalpath Original filedir path.
+     * @param string $originalpath Local temporary copy of the generated Moodle backup.
      * @param array $logs Backup logs by reference.
      * @return array
      * @throws \Throwable
@@ -251,7 +255,7 @@ class backup_course extends scheduled_task {
      * @throws \invalid_dataroot_permissions
      * @throws \moodle_exception
      */
-    private function remove_admin_from_backup(stored_file $file, string $originalpath, array &$logs): array {
+    private function remove_admin_from_backup(string $originalpath, array &$logs): array {
         $tempdir = make_temp_directory('local_backupftp_' . uniqid()) . '/sanitize-' . uniqid('', true);
         $extractdir = $tempdir . '/extract';
 
@@ -261,7 +265,7 @@ class backup_course extends scheduled_task {
 
         try {
             $packer = get_file_packer('application/vnd.moodle.backup');
-            if (!$packer->extract_to_pathname($file, $extractdir, null, null, true)) {
+            if (!$packer->extract_to_pathname($originalpath, $extractdir, null, null, true)) {
                 throw new Exception('Unable to extract MBZ backup to remove admin user');
             }
 
@@ -321,7 +325,7 @@ class backup_course extends scheduled_task {
     /**
      * Send a generated backup to FTP and/or local storage.
      *
-     * @param string $localtempfile Moodle filedir path.
+     * @param string $localtempfile Readable local temporary MBZ pathname.
      * @param string $filename Backup filename.
      * @param int $courseid Course id.
      * @param array $logs Existing logs.
