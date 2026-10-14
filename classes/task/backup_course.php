@@ -164,7 +164,7 @@ class backup_course extends scheduled_task {
         $logs = [];
         $controller = null;
         $file = null;
-        $localtempfile = null;
+        $backuptempfile = null;
         $sanitizetempdir = null;
 
         $logs[] = get_string('backup_creation_parameters', 'local_backupftp') . "\n
@@ -212,12 +212,12 @@ class backup_course extends scheduled_task {
             $logs[] = 'MBZ file created';
 
             // Use Moodle's File API so backups also work with alternative file systems (e.g. S3).
-            $localtempfile = $file->copy_content_to_temp('local_backupftp', 'backup_');
-            if ($localtempfile === false) {
+            $backuptempfile = $file->copy_content_to_temp('local_backupftp', 'backup_');
+            if ($backuptempfile === false) {
                 throw new Exception('Unable to copy MBZ backup from Moodle file storage to a temporary file');
             }
 
-            $preparedbackup = $this->remove_admin_from_backup($localtempfile, $logs);
+            $preparedbackup = $this->remove_admin_from_backup($backuptempfile, $logs);
             $localtempfile = $preparedbackup['path'];
             $sanitizetempdir = $preparedbackup['tempdir'];
 
@@ -231,8 +231,8 @@ class backup_course extends scheduled_task {
             if ($sanitizetempdir && is_dir($sanitizetempdir)) {
                 fulldelete($sanitizetempdir);
             }
-            if (is_string($localtempfile) && is_file($localtempfile)) {
-                @unlink($localtempfile);
+            if (is_string($backuptempfile) && is_file($backuptempfile)) {
+                @unlink($backuptempfile);
             }
             if ($file instanceof stored_file) {
                 $file->delete();
