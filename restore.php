@@ -56,7 +56,7 @@ echo $OUTPUT->render_from_template("local_backupftp/page_navigation", [
 // Config (used by list/render helpers below).
 $ftppasta = get_config('local_backupftp', 'ftppasta');
 $localfilepath = localfilepath::get_path();
-$ftpenable = get_config('local_backupftp', 'ftpenable');
+$ftpenable = get_config('local_backupftp', 'ftpenable') && isset(get_config('local_backupftp', 'ftpenable')[3]);
 $localfileenable = get_config('local_backupftp', 'localfileenable');
 
 // Handle POST: add selected FTP/local files to restore queue.

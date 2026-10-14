@@ -341,7 +341,7 @@ class backup_course extends scheduled_task {
         global $DB;
 
         $localfileenable = (bool)get_config('local_backupftp', 'localfileenable');
-        $ftpenable = (bool)get_config('local_backupftp', 'ftpenable');
+        $ftpenable = get_config('local_backupftp', 'ftpenable') && isset(get_config('local_backupftp', 'ftpenable')[3]);
         $ftpnames = (bool)get_config('local_backupftp', 'ftpnames');
         $ftppath = (string)get_config('local_backupftp', 'ftppasta');
         $ftporganize = (bool)get_config('local_backupftp', 'ftporganize');

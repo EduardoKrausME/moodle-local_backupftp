@@ -304,7 +304,7 @@ class restore_course extends scheduled_task {
      */
     private function copy_configured_source_file(string $remotefile, string $localfile, array &$logs): array {
         $localfileenable = get_config('local_backupftp', 'localfileenable');
-        $ftpenable = get_config('local_backupftp', 'ftpenable');
+        $ftpenable = get_config('local_backupftp', 'ftpenable') && isset(get_config('local_backupftp', 'ftpenable')[3]);
 
         if ($ftpenable) {
             $ftp = new ftp();
