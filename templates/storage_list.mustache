@@ -68,7 +68,7 @@
                                 {{/enabled}}
                             </td>
                             <td>
-                                <a class="btn btn-outline-primary btn-sm" href="{{editurl}}">
+                                <a class="btn btn-outline-primary btn-sm" href="{{{editurl}}}">
                                     {{#str}}storage_edit, local_backupftp{{/str}}
                                 </a>
                             </td>
@@ -89,7 +89,7 @@
     <template id="local-backupftp-storage-providers">
         <div class="list-group">
             {{#providers}}
-                <a class="list-group-item list-group-item-action" href="{{url}}">{{name}}</a>
+                <a class="list-group-item list-group-item-action" href="{{{url}}}">{{name}}</a>
             {{/providers}}
         </div>
     </template>
