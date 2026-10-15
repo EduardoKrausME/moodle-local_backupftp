@@ -82,5 +82,6 @@ function local_backupftp_get_index_context() {
         'backupreporturl' => new moodle_url('/local/backupftp/report-backup.php'),
         'restorereporturl' => new moodle_url('/local/backupftp/report-restore.php'),
         'storageurl' => new moodle_url('/local/backupftp/storage.php'),
+        'servicecontracturl' => new moodle_url('/local/backupftp/service-contract.php'),
     ];
 }

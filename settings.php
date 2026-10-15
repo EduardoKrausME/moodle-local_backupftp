@@ -46,6 +46,15 @@ if ($hassiteconfig) {
 
     $ADMIN->add('integracaoroot',
         new admin_externalpage(
+            'local_backupftp_servicecontract',
+            get_string('servicecontract_title', 'local_backupftp'),
+            $CFG->wwwroot . '/local/backupftp/service-contract.php',
+            'local/backupftp:manage'
+        )
+    );
+
+    $ADMIN->add('integracaoroot',
+        new admin_externalpage(
             'local_backupftp_tokens',
             get_string('transfer_tokens', 'local_backupftp'),
             $CFG->wwwroot . '/local/backupftp/tokens.php'

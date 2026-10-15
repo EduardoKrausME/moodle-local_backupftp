@@ -1,0 +1,107 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License
+    along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_backupftp/service_contract
+    Example context (json):
+    {
+        "downloadurl": "/local/backupftp/service-contract.php?download=1",
+        "formurl": "/local/backupftp/service-contract.php",
+        "backurl": "/local/backupftp/index.php",
+        "sesskey": "abc",
+        "error": "",
+        "report": false
+    }
+}}
+<div class="local-backupftp-service-contract">
+    <p>{{#str}}servicecontract_intro, local_backupftp{{/str}}</p>
+    <p>
+        <a href="{{{downloadurl}}}" class="btn btn-outline-primary">
+            {{#str}}servicecontract_export, local_backupftp{{/str}}
+        </a>
+        <a href="{{{backurl}}}" class="btn btn-outline-secondary">
+            {{#str}}back_to_plugin_home, local_backupftp{{/str}}
+        </a>
+    </p>
+    <p class="text-muted">{{#str}}servicecontract_privacy, local_backupftp{{/str}}</p>
+
+    <form method="post" action="{{{formurl}}}" enctype="multipart/form-data">
+        <input type="hidden" name="sesskey" value="{{sesskey}}">
+        <div class="form-group">
+            <label for="id_sourcecontract">{{#str}}servicecontract_source, local_backupftp{{/str}}</label>
+            <input id="id_sourcecontract" name="sourcesnapshot" class="form-control-file" type="file"
+                accept=".json,application/json" required>
+        </div>
+        <div class="form-group">
+            <label for="id_targetcontract">{{#str}}servicecontract_target, local_backupftp{{/str}}</label>
+            <input id="id_targetcontract" name="targetsnapshot" class="form-control-file" type="file"
+                accept=".json,application/json">
+            <small class="form-text text-muted">{{#str}}servicecontract_target_help, local_backupftp{{/str}}</small>
+        </div>
+        <button type="submit" class="btn btn-primary">{{#str}}servicecontract_compare, local_backupftp{{/str}}</button>
+    </form>
+
+    {{#error}}
+        <div class="alert alert-danger mt-3" role="alert">{{error}}</div>
+    {{/error}}
+
+    {{#report}}
+        <section class="mt-4">
+            <h3>{{#str}}servicecontract_results, local_backupftp{{/str}}</h3>
+            <p>{{#str}}servicecontract_from, local_backupftp{{/str}}: {{sourceversion}}
+                &rarr; {{#str}}servicecontract_to, local_backupftp{{/str}}: {{targetversion}}</p>
+            <p>
+                {{#str}}servicecontract_status_removed, local_backupftp{{/str}}: <strong>{{removed}}</strong>;
+                {{#str}}servicecontract_status_added, local_backupftp{{/str}}: <strong>{{added}}</strong>;
+                {{#str}}servicecontract_status_changed, local_backupftp{{/str}}: <strong>{{changed}}</strong>;
+                {{#str}}servicecontract_status_unresolved, local_backupftp{{/str}}: <strong>{{unresolved}}</strong>;
+                {{#str}}servicecontract_status_unchanged, local_backupftp{{/str}}: <strong>{{unchanged}}</strong>
+            </p>
+            {{^haschanges}}
+                <div class="alert alert-success">{{#str}}servicecontract_same, local_backupftp{{/str}}</div>
+            {{/haschanges}}
+            {{#haschanges}}
+                <p class="text-muted">{{#str}}servicecontract_review, local_backupftp{{/str}}</p>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th scope="col">{{#str}}servicecontract_function, local_backupftp{{/str}}</th>
+                            <th scope="col">{{#str}}servicecontract_status, local_backupftp{{/str}}</th>
+                            <th scope="col">{{#str}}servicecontract_details, local_backupftp{{/str}}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {{#changes}}
+                            <tr>
+                                <td><code>{{name}}</code></td>
+                                <td>{{statuslabel}}</td>
+                                <td>
+                                    {{#fields}}<p>{{fields}}</p>{{/fields}}
+                                    <details>
+                                        <summary>{{#str}}servicecontract_signatures, local_backupftp{{/str}}</summary>
+                                        <strong>{{#str}}servicecontract_from, local_backupftp{{/str}}</strong>
+                                        <pre class="bg-light p-2">{{source}}</pre>
+                                        <strong>{{#str}}servicecontract_to, local_backupftp{{/str}}</strong>
+                                        <pre class="bg-light p-2">{{target}}</pre>
+                                    </details>
+                                </td>
+                            </tr>
+                        {{/changes}}
+                        </tbody>
+                    </table>
+                </div>
+            {{/haschanges}}
+        </section>
+    {{/report}}
+</div>

@@ -44,6 +44,27 @@ FTP credentials are stored in destination configurations on the Moodle database;
 access to database backups and the `local/backupftp:manage` capability. FTP is not encrypted
 in transit; prefer FTPS when a remote server supports it.
 
+## Web service contract comparison
+
+Before migrating between Moodle versions, open **Web service contract comparison**
+from the Backup FTP/Local home page or Site administration. Download a JSON
+snapshot from the source installation and upload it on the destination's comparison
+page. Optionally supply a second snapshot to compare two remote/archived installations
+without network access. The target defaults to the current Moodle installation.
+
+The snapshot covers registered Moodle External API functions, including the structure
+of their parameters and return values. Results highlight functions missing in the
+destination, newly added functions, signature changes and contracts whose descriptions
+could not be read. Reported differences need review: the comparison does not prove
+whether a change is backwards-compatible or whether a course backup will restore.
+
+The feature is read-only, requires `local/backupftp:manage`, and does not execute
+any external service functions. It does not send authentication tokens or contact
+remote servers. Downloaded JSON excludes parameter descriptions, default values,
+credentials and personal records. Snapshots are processed in memory, never
+persisted, and uploads are limited to 8 MiB per file. Existing backup/restore
+queues, storage providers and transfer tokens are not changed.
+
 ## License
 
 GNU GPL version 3 or later. See [LICENSE](LICENSE).
