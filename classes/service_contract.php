@@ -100,10 +100,10 @@ final class service_contract {
             }
             ksort($keys, SORT_STRING);
             $result['fields'] = $keys;
-        } elseif (property_exists($description, 'content')) {
+        } else if (property_exists($description, 'content')) {
             $result['kind'] = 'list';
             $result['items'] = self::describe($description->content, $depth + 1);
-        } elseif (property_exists($description, 'type')) {
+        } else if (property_exists($description, 'type')) {
             $result['kind'] = 'value';
             $result['type'] = (string) $description->type;
         } else {
@@ -167,9 +167,9 @@ final class service_contract {
             $fields = [];
             if ($before === null) {
                 $status = 'added';
-            } elseif ($after === null) {
+            } else if ($after === null) {
                 $status = 'removed';
-            } elseif ($before['status'] !== 'ok' || $after['status'] !== 'ok') {
+            } else if ($before['status'] !== 'ok' || $after['status'] !== 'ok') {
                 $status = 'unresolved';
             } else {
                 foreach (['parameters', 'returns'] as $field) {
