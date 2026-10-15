@@ -27,7 +27,7 @@ namespace local_backupftp;
 /**
  * Contract snapshot validation and comparison.
  *
- * @covers \local_backupftp\\service_contract
+ * @covers \local_backupftp\service_contract
  */
 final class service_contract_test extends \advanced_testcase {
     /**
