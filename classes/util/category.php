@@ -25,7 +25,6 @@
 namespace local_backupftp\util;
 
 use core_course_category;
-use core_text;
 use Exception;
 use local_backupftp\storage\manager;
 use moodle_url;
