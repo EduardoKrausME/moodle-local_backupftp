@@ -1,4 +1,7 @@
 {
+    "subplugintypes": {
+        "backupftpstorage": "storage"
+    },
     "plugintypes": {
         "backupftpstorage": "local/backupftp/storage"
     }
