@@ -14,21 +14,6 @@ The core plugin owns the configuration instances and scheduled tasks. Each desti
 has its own name, enabled state, provider type and settings. You can create multiple
 instances of the same provider, with different hosts or local directories.
 
-## Installation and upgrade
-
-Place the plugin at `local/backupftp` and install it in Site administration > Notifications.
-
-New installations automatically have a local storage destination enabled in the Moodle
-dataroot `backup` directory. Existing installations migrate their local destination
-only when `local_backupftp/localfileenable` is enabled. FTP is migrated only when
-both `local_backupftp/ftpenable` and `local_backupftp/ftpurl` are configured.
-Migrated settings are not deleted, to preserve rollback compatibility, but they are no
-longer shown or used for new FTP backup destinations.
-
-The upgrade is idempotent and does not create duplicate destination types when rerun.
-Use the `Storage systems` area on `local/backupftp/index.php` to configure or edit
-destinations. The former FTP and local global settings have been replaced by provider forms.
-
 ## Backups and restores
 
 On the backup screen select one or more active configured destinations along with Moodle
