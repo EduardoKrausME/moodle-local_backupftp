@@ -20,6 +20,7 @@
     Example context (json):
     {
         "backupurl": "https://moodle.local/local/backupftp/backup.php",
+        "automaticurl": "https://moodle.local/local/backupftp/automatic.php",
         "restoreurl": "https://moodle.local/local/backupftp/restore.php",
         "tokensurl": "https://moodle.local/local/backupftp/tokens.php",
         "backupreporturl": "https://moodle.local/local/backupftp/report-backup.php",
@@ -43,8 +44,13 @@
                     <p>
                         {{#str}}index_backup_desc, local_backupftp{{/str}}
                     </p>
-                    <p class="mb-0">
+                    <p>
                         <a class="btn btn-primary" href="{{{backupurl}}}">{{#str}}index_backup_button, local_backupftp{{/str}}</a>
+                    </p>
+                    <h4 class="h6 mt-4">{{#str}}automatic_title, local_backupftp{{/str}}</h4>
+                    <p>{{#str}}automatic_intro, local_backupftp{{/str}}</p>
+                    <p class="mb-0">
+                        <a class="btn btn-outline-primary" href="{{{automaticurl}}}">{{#str}}automatic_configure, local_backupftp{{/str}}</a>
                     </p>
                 </div>
             </div>

@@ -196,4 +196,44 @@ class provider extends \local_backupftp\storage\provider {
         $logs[] = get_string('file_found_and_downloaded', 'local_backupftp');
         return true;
     }
+
+    /**
+     * @return bool
+     */
+    public function supports_automatic(): bool {
+        return true;
+    }
+
+    /**
+     * @param string $filename Unique filename.
+     * @return string
+     */
+    protected function automatic_path(string $filename): string {
+        return ($this->root() === '' ? '' : $this->root() . '/') . $filename;
+    }
+
+    /**
+     * @param string $path Exact recorded object key.
+     * @return bool
+     */
+    public function delete_automatic(string $path): bool {
+        if ($path !== $this->automatic_path(basename($path)) || !$this->owns($path)) {
+            return false;
+        }
+        $this->connect()->delete($path);
+        return true;
+    }
+
+
+    /**
+     * Verify a transferred automatic object.
+     *
+     * @param string $path Object key.
+     * @param int $size Expected size.
+     * @return bool
+     */
+    protected function verify_automatic(string $path, int $size): bool {
+        return $this->owns($path) && $this->connect()->size($path) === $size;
+    }
+
 }

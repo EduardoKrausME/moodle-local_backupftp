@@ -207,6 +207,9 @@ class client {
                     return strlen($line);
                 },
             ];
+            if ($method === 'HEAD') {
+                $options[CURLOPT_NOBODY] = true;
+            }
             if ($input !== null) {
                 $remaining = $length;
                 $options[CURLOPT_UPLOAD] = true;
@@ -388,4 +391,27 @@ class client {
             }
         }
     }
+
+    /**
+     * Delete one exact object key.
+     *
+     * @param string $key Object key.
+     */
+    public function delete(string $key): void {
+        $this->request('DELETE', $key);
+    }
+
+
+    /**
+     * Read the object size without downloading the archive.
+     *
+     * @param string $key Object key.
+     * @return int
+     */
+    public function size(string $key): int {
+        $response = $this->request('HEAD', $key);
+        $length = $response['headers']['content-length'] ?? '';
+        return ctype_digit($length) ? (int)$length : -1;
+    }
+
 }

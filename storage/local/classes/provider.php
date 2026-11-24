@@ -167,4 +167,39 @@ class provider extends \local_backupftp\storage\provider {
         $logs[] = get_string('file_found_and_downloaded', 'local_backupftp');
         return true;
     }
+
+    /**
+     * @return bool
+     */
+    public function supports_automatic(): bool {
+        return true;
+    }
+
+    /**
+     * @param string $path Exact recorded destination path.
+     * @return bool
+     */
+    public function delete_automatic(string $path): bool {
+        if ($path !== $this->automatic_path(basename($path))) {
+            return false;
+        }
+        if (!file_exists($path) && !is_link($path)) {
+            return true;
+        }
+        return !is_link($path) && $this->owns($path) && @unlink($path);
+    }
+
+
+    /**
+     * Verify a transferred automatic copy.
+     *
+     * @param string $path Destination path.
+     * @param int $size Expected size.
+     * @return bool
+     */
+    protected function verify_automatic(string $path, int $size): bool {
+        clearstatcache(true, $path);
+        return !is_link($path) && $this->owns($path) && filesize($path) === $size;
+    }
+
 }

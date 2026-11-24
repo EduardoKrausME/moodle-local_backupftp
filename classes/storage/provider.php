@@ -179,4 +179,70 @@ abstract class provider {
         }
         return $name;
     }
+
+    /**
+     * Whether the provider supports versioned automated backups and scoped deletion.
+     *
+     * @return bool
+     */
+    public function supports_automatic(): bool {
+        return false;
+    }
+
+    /**
+     * Store a versioned backup without applying manual filename or category options.
+     *
+     * @param string $source Local archive.
+     * @param string $filename Unique filename.
+     * @param int $courseid Course ID.
+     * @param array $logs Transfer logs.
+     * @return string Exact destination path.
+     */
+    public function store_automatic(string $source, string $filename, int $courseid, array &$logs): string {
+        if (!$this->supports_automatic() || !preg_match('/\Abackup-moodle2-course-[0-9]+-auto-[a-f0-9]{32}-[0-9]+\.mbz\z/', $filename)) {
+            throw new \coding_exception('Unsupported automatic backup destination or filename');
+        }
+        $copy = clone $this;
+        $copy->config['names'] = 0;
+        $copy->config['organize'] = 0;
+        $path = $copy->automatic_path($filename);
+        if (!$copy->store($source, $filename, $courseid, $logs) ||
+                !$copy->verify_automatic($path, (int)filesize($source))) {
+            throw new \moodle_exception('storage_failure', 'local_backupftp', '', $this->record->name);
+        }
+        return $path;
+    }
+
+    /**
+     * Construct the exact destination path for a versioned backup.
+     *
+     * @param string $filename Unique filename.
+     * @return string
+     */
+    protected function automatic_path(string $filename): string {
+        return rtrim($this->root(), '/\\') . '/' . $filename;
+    }
+
+    /**
+     * Remove one previously recorded automated backup; never scan or delete unrelated files.
+     *
+     * @param string $path Exact recorded destination path.
+     * @return bool
+     */
+    public function delete_automatic(string $path): bool {
+        return false;
+    }
+
+
+    /**
+     * Verify the transferred file size at the exact recorded path.
+     *
+     * @param string $path Destination path.
+     * @param int $size Expected size in bytes.
+     * @return bool
+     */
+    protected function verify_automatic(string $path, int $size): bool {
+        return false;
+    }
+
 }

@@ -155,5 +155,24 @@ function xmldb_local_backupftp_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026101402, 'local', 'backupftp');
     }
 
+    if ($oldversion < 2026112400) {
+        $table = new xmldb_table('local_backupftp_auto');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE);
+            $table->add_field('backupid', XMLDB_TYPE_CHAR, '32', null, XMLDB_NOTNULL);
+            $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+            $table->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL);
+            $table->add_field('destinations', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL);
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL);
+            $table->add_field('nextattempt', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timecompleted', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $table->add_index('backupid_uix', XMLDB_INDEX_UNIQUE, ['backupid']);
+            $table->add_index('status_next_ix', XMLDB_INDEX_NOTUNIQUE, ['status', 'nextattempt']);
+            $dbman->create_table($table);
+        }
+        upgrade_plugin_savepoint(true, 2026112400, 'local', 'backupftp');
+    }
+
     return true;
 }

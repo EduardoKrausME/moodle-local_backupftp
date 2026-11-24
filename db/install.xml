@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/backupftp/db" VERSION="20261014" COMMENT="Backup data"
+<XMLDB PATH="local/backupftp/db" VERSION="20261124" COMMENT="Backup data"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
     <TABLES>
@@ -12,8 +12,8 @@
                 <FIELD NAME="timecreated" TYPE="int" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="timestart" TYPE="int" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
                 <FIELD NAME="timeend" TYPE="int" LENGTH="20" NOTNULL="false" SEQUENCE="false"/>
-            </FIELDS>
                 <FIELD NAME="storageids" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+            </FIELDS>
             <KEYS>
                 <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
             </KEYS>
@@ -75,6 +75,25 @@
             </KEYS>
             <INDEXES>
                 <INDEX NAME="type_ix" UNIQUE="false" FIELDS="type"/>
+            </INDEXES>
+        </TABLE>
+        <TABLE NAME="local_backupftp_auto" COMMENT="Native automated backup transfers">
+            <FIELDS>
+                <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+                <FIELD NAME="backupid" TYPE="char" LENGTH="32" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="destinations" TYPE="text" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+                <FIELD NAME="nextattempt" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+                <FIELD NAME="timecompleted" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" DEFAULT="0"/>
+            </FIELDS>
+            <KEYS>
+                <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+            </KEYS>
+            <INDEXES>
+                <INDEX NAME="backupid_uix" UNIQUE="true" FIELDS="backupid"/>
+                <INDEX NAME="status_next_ix" UNIQUE="false" FIELDS="status,nextattempt"/>
             </INDEXES>
         </TABLE>
     </TABLES>

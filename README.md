@@ -53,3 +53,9 @@ queues, storage providers and transfer tokens are not changed.
 ## License
 
 GNU GPL version 3 or later. See [LICENSE](LICENSE).
+
+## Native automated backups
+
+Open **Configure automatic backups** on the home page. Moodle continues to generate the scheduled course backups; BackupFTP observes successful native automated backup events, matches the archive's manifest backup ID, stages a private copy before native cleanup, and transfers it through cron. One active supported destination is selected automatically; with multiple, choose the intended destinations. Manual backups and restores remain separate. Automatic copies use unique names and ignore the manual filename/category naming preferences.
+
+Choose never to delete, or delete only the automatic copies tracked by this plugin a specified number of days after all selected transfers complete. The original Moodle files and manual backups are not deleted. Disabling the feature pauses processing and deletion. A failed destination is retried, without resending completed destinations; a changed or disabled destination pauses the corresponding upload or deletion until its original configuration is restored. Staged backups may contain personal data and require secure Moodledata and storage access; monitor pending transfers and free disk space. The native backup schedule and local retention remain configured in Moodle. S3 retention requires DeleteObject permission; bucket versioning or retention policies may retain previous object versions.

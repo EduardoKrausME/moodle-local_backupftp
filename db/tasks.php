@@ -42,4 +42,13 @@ $tasks = [
         "dayofweek" => "*",
         "month" => "*",
     ],
+    [
+        'classname' => '\local_backupftp\task\automatic_backup',
+        'blocking' => 0,
+        'minute' => '*',
+        'hour' => '*',
+        'day' => '*',
+        'dayofweek' => '*',
+        'month' => '*',
+    ],
 ];

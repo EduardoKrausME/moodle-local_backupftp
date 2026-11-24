@@ -77,6 +77,7 @@ function local_backupftp_extend_navigation_course($navigation, $course, $context
 function local_backupftp_get_index_context() {
     return [
         'backupurl' => new moodle_url('/local/backupftp/backup.php'),
+        'automaticurl' => new moodle_url('/local/backupftp/automatic.php'),
         'restoreurl' => new moodle_url('/local/backupftp/restore.php'),
         'tokensurl' => new moodle_url('/local/backupftp/tokens.php'),
         'backupreporturl' => new moodle_url('/local/backupftp/report-backup.php'),

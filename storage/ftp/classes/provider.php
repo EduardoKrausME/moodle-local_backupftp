@@ -271,4 +271,45 @@ class provider extends \local_backupftp\storage\provider {
             ftp_close($conn);
         }
     }
+
+    /**
+     * @return bool
+     */
+    public function supports_automatic(): bool {
+        return true;
+    }
+
+    /**
+     * @param string $path Exact recorded destination path.
+     * @return bool
+     */
+    public function delete_automatic(string $path): bool {
+        if ($path !== $this->automatic_path(basename($path)) || !$this->owns($path)) {
+            return false;
+        }
+        $conn = $this->connect();
+        try {
+            return @ftp_delete($conn, $path);
+        } finally {
+            ftp_close($conn);
+        }
+    }
+
+
+    /**
+     * Verify a transferred automatic copy.
+     *
+     * @param string $path Destination path.
+     * @param int $size Expected size.
+     * @return bool
+     */
+    protected function verify_automatic(string $path, int $size): bool {
+        $conn = $this->connect();
+        try {
+            return @ftp_size($conn, $path) === $size;
+        } finally {
+            ftp_close($conn);
+        }
+    }
+
 }
