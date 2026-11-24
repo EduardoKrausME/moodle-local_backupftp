@@ -24,7 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die;
 
-$plugin->version = 2026112400;
+$plugin->version = 2026112401;
 $plugin->requires = 2020011900;
 $plugin->dependencies = ['local_backupftp' => 2026101402];
 $plugin->component = 'backupftpstorage_s3';

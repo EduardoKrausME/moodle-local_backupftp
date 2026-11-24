@@ -110,7 +110,7 @@ class provider extends \local_backupftp\storage\provider {
 
     /** @return client Instance-scoped S3 client. */
     private function connect(): client {
-        return new client(self::normalize($this->config));
+        return new client(static::normalize($this->config));
     }
 
     /**

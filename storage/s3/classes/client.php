@@ -50,17 +50,70 @@ class client {
         if (!function_exists('curl_init') || !function_exists('simplexml_load_string')) {
             throw new \moodle_exception('extensionrequired', 'backupftpstorage_s3');
         }
-        $region = $config['region'];
-        if ($config['service'] === 'space') {
-            $endpoint = $region . '.digitaloceanspaces.com';
+        if (isset($config['endpoint'])) {
+            $address = self::resolve_endpoint($config['endpoint'], $config['bucket'], $config['urlstyle']);
+            $this->host = $address['host'];
+            $this->basepath = $address['basepath'];
         } else {
-            $suffix = strpos($region, 'cn-') === 0 ? 'amazonaws.com.cn' : 'amazonaws.com';
-            $endpoint = 's3.' . $region . '.' . $suffix;
+            $region = $config['region'];
+            if ($config['service'] === 'space') {
+                $endpoint = $region . '.digitaloceanspaces.com';
+            } else {
+                $suffix = strpos($region, 'cn-') === 0 ? 'amazonaws.com.cn' : 'amazonaws.com';
+                $endpoint = 's3.' . $region . '.' . $suffix;
+            }
+            // Dotted bucket names do not match a single-label TLS wildcard.
+            $pathstyle = strpos($config['bucket'], '.') !== false;
+            $this->host = $pathstyle ? $endpoint : $config['bucket'] . '.' . $endpoint;
+            $this->basepath = $pathstyle ? '/' . rawurlencode($config['bucket']) : '';
         }
-        // Dotted bucket names do not match a single-label TLS wildcard.
-        $pathstyle = strpos($config['bucket'], '.') !== false;
-        $this->host = $pathstyle ? $endpoint : $config['bucket'] . '.' . $endpoint;
-        $this->basepath = $pathstyle ? '/' . rawurlencode($config['bucket']) : '';
+    }
+
+
+    /**
+     * Validate a custom HTTPS endpoint and resolve the bucket addressing style.
+     *
+     * @param string $endpoint HTTPS service origin or hostname, optionally with a port.
+     * @param string $bucket Bucket name.
+     * @param string $style auto, path-style or virtual-hosted.
+     * @return array Canonical endpoint, request host and bucket path.
+     */
+    public static function resolve_endpoint(string $endpoint, string $bucket, string $style): array {
+        $endpoint = trim($endpoint);
+        if ($endpoint === '' || preg_match('/[\x00-\x20\x7f\\\\]/', $endpoint) ||
+                !in_array($style, ['auto', 'path-style', 'virtual-hosted'], true) ||
+                !preg_match('/\A[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]\z/', $bucket) ||
+                strpos($bucket, '..') !== false || filter_var($bucket, FILTER_VALIDATE_IP)) {
+            throw new \invalid_parameter_exception('Invalid S3 endpoint or addressing style');
+        }
+        if (strpos($endpoint, '://') === false) {
+            $endpoint = 'https://' . $endpoint;
+        }
+        $parts = parse_url($endpoint);
+        if (!$parts || strtolower($parts['scheme'] ?? '') !== 'https' || empty($parts['host']) ||
+                isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) ||
+                isset($parts['fragment']) || !in_array($parts['path'] ?? '', ['', '/'], true) ||
+                (isset($parts['port']) && ($parts['port'] < 1 || $parts['port'] > 65535))) {
+            throw new \invalid_parameter_exception('S3 endpoint must be an HTTPS origin without a path or credentials');
+        }
+        $hostname = strtolower($parts['host']);
+        $isip = filter_var(trim($hostname, '[]'), FILTER_VALIDATE_IP) !== false;
+        if (!$isip && (!filter_var($hostname, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) ||
+                preg_match('/\A[0-9.]+\z/', $hostname) || substr($hostname, -1) === '.')) {
+            throw new \invalid_parameter_exception('Invalid S3 endpoint hostname');
+        }
+        $port = isset($parts['port']) && $parts['port'] !== 443 ? ':' . $parts['port'] : '';
+        // Auto uses path-style for IPs, single-label hosts and dotted buckets.
+        $pathstyle = $style === 'path-style' || ($style === 'auto' &&
+            ($isip || strpos($hostname, '.') === false || strpos($bucket, '.') !== false));
+        if (!$pathstyle && $isip) {
+            throw new \invalid_parameter_exception('Virtual-hosted S3 addressing requires a DNS hostname');
+        }
+        return [
+            'endpoint' => 'https://' . $hostname . $port,
+            'host' => ($pathstyle ? $hostname : $bucket . '.' . $hostname) . $port,
+            'basepath' => $pathstyle ? '/' . rawurlencode($bucket) : '',
+        ];
     }
 
     /**
