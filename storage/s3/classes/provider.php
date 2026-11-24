@@ -198,6 +198,8 @@ class provider extends \local_backupftp\storage\provider {
     }
 
     /**
+     * Indicate support for automatic backup transfers.
+     *
      * @return bool
      */
     public function supports_automatic(): bool {
@@ -205,6 +207,8 @@ class provider extends \local_backupftp\storage\provider {
     }
 
     /**
+     * Build the exact key for an automatic backup.
+     *
      * @param string $filename Unique filename.
      * @return string
      */
@@ -213,6 +217,8 @@ class provider extends \local_backupftp\storage\provider {
     }
 
     /**
+     * Delete a previously transferred automatic backup.
+     *
      * @param string $path Exact recorded object key.
      * @return bool
      */

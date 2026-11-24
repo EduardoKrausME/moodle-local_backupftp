@@ -199,7 +199,8 @@ abstract class provider {
      * @return string Exact destination path.
      */
     public function store_automatic(string $source, string $filename, int $courseid, array &$logs): string {
-        if (!$this->supports_automatic() || !preg_match('/\Abackup-moodle2-course-[0-9]+-auto-[a-f0-9]{32}-[0-9]+\.mbz\z/', $filename)) {
+        if (!$this->supports_automatic() ||
+                !preg_match('/\Abackup-moodle2-course-[0-9]+-auto-[a-f0-9]{32}-[0-9]+\.mbz\z/', $filename)) {
             throw new \coding_exception('Unsupported automatic backup destination or filename');
         }
         $copy = clone $this;

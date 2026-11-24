@@ -29,6 +29,8 @@ namespace local_backupftp\task;
  */
 class automatic_backup extends \core\task\scheduled_task {
     /**
+     * Return the localized task name.
+     *
      * @return string
      */
     public function get_name() {

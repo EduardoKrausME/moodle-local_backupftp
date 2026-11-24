@@ -120,7 +120,12 @@ class automatic {
             }
             $destinations = [];
             foreach (self::selected((array)$settings['storageids'], self::storages()) as $record) {
-                $destinations[] = ['id' => (int)$record->id, 'hash' => self::fingerprint($record), 'path' => '', 'deleted' => false];
+                $destinations[] = [
+                    'id' => (int)$record->id,
+                    'hash' => self::fingerprint($record),
+                    'path' => '',
+                    'deleted' => false,
+                ];
             }
             if (!$destinations) {
                 mtrace('BackupFTP: no selected active destination for automated backup.');

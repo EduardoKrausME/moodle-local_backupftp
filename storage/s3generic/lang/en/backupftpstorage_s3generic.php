@@ -32,5 +32,5 @@ $string['region'] = 'Signing region';
 $string['styleauto'] = 'Automatic';
 $string['stylepath'] = 'Path-style (endpoint/bucket)';
 $string['stylevirtual'] = 'Virtual-hosted (bucket.endpoint)';
-$string['urlstyle_help'] = 'Use the addressing style required by your provider. Automatic uses path-style for IP addresses, single-label hosts and dotted bucket names, and virtual-hosted style otherwise. Select path-style explicitly if your provider requires it.';
 $string['urlstyle'] = 'Bucket URL style';
+$string['urlstyle_help'] = 'Use the addressing style required by your provider. Automatic uses path-style for IP addresses, single-label hosts and dotted bucket names, and virtual-hosted style otherwise. Select path-style explicitly if your provider requires it.';

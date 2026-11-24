@@ -29,7 +29,7 @@ namespace local_backupftp;
  *
  * @covers \local_backupftp\automatic
  */
-class automatic_test extends \advanced_testcase {
+final class automatic_test extends \advanced_testcase {
     /**
      * One destination is implicit; multiple destinations require explicit IDs.
      */

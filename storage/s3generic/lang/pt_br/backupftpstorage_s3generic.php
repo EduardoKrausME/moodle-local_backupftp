@@ -32,5 +32,5 @@ $string['region'] = 'Região de assinatura';
 $string['styleauto'] = 'Automático';
 $string['stylepath'] = 'Path-style (endpoint/bucket)';
 $string['stylevirtual'] = 'Virtual-hosted (bucket.endpoint)';
-$string['urlstyle_help'] = 'Use o estilo de endereçamento exigido pelo provedor. O modo automático usa path-style para endereços IP, hosts sem domínio e buckets com pontos, e virtual-hosted nos demais casos. Selecione path-style explicitamente quando exigido pelo serviço.';
 $string['urlstyle'] = 'Estilo de URL do bucket';
+$string['urlstyle_help'] = 'Use o estilo de endereçamento exigido pelo provedor. O modo automático usa path-style para endereços IP, hosts sem domínio e buckets com pontos, e virtual-hosted nos demais casos. Selecione path-style explicitamente quando exigido pelo serviço.';

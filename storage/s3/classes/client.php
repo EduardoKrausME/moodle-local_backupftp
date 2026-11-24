@@ -317,7 +317,7 @@ class client {
                 } catch (\Exception $ignored) {
                     // A bucket lifecycle rule can clean abandoned multipart uploads.
                     // Preserve the original upload failure.
-                    error_log('BackupFTP S3: failed to abort an incomplete multipart upload.');
+                    debugging('BackupFTP S3: failed to abort an incomplete multipart upload.', DEBUG_DEVELOPER);
                 }
             }
             fclose($input);

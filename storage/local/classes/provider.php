@@ -169,6 +169,8 @@ class provider extends \local_backupftp\storage\provider {
     }
 
     /**
+     * Indicate support for automatic backup transfers.
+     *
      * @return bool
      */
     public function supports_automatic(): bool {
@@ -176,6 +178,8 @@ class provider extends \local_backupftp\storage\provider {
     }
 
     /**
+     * Delete a previously transferred automatic backup.
+     *
      * @param string $path Exact recorded destination path.
      * @return bool
      */
