@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * S3 backup storage.
@@ -29,8 +29,10 @@ namespace backupftpstorage_s3;
  *
  * @covers \backupftpstorage_s3\provider
  */
-class provider_test extends \advanced_testcase {
-    /** Verify defaults, prefix boundaries and invalid paths. */
+final class provider_test extends \advanced_testcase {
+    /**
+     * Verify defaults, prefix boundaries and invalid paths.
+     */
     public function test_config_and_ownership(): void {
         foreach (['aws' => 'us-east-1', 'space' => 'nyc1'] as $service => $region) {
             $config = provider::normalize(['service' => $service, 'region' => $region,
@@ -44,7 +46,9 @@ class provider_test extends \advanced_testcase {
         }
     }
 
-    /** Reject invalid region strings before building a hostname. */
+    /**
+     * Reject invalid region strings before building a hostname.
+     */
     public function test_invalid_region(): void {
         $this->expectException(\invalid_parameter_exception::class);
         provider::normalize(['region' => 'example.com/path', 'bucket' => 'test-backups',

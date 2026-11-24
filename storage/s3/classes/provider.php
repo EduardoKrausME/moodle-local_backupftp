@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * S3 backup storage.
@@ -28,7 +28,11 @@ namespace backupftpstorage_s3;
  * Amazon S3 and DigitalOcean Spaces backup destination.
  */
 class provider extends \local_backupftp\storage\provider {
-    /** @return string Provider name. */
+    /**
+     * Return the provider name.
+     *
+     * @return string
+     */
     public static function get_label(): string {
         return get_string('pluginname', 'backupftpstorage_s3');
     }
@@ -55,7 +59,11 @@ class provider extends \local_backupftp\storage\provider {
         $form->addElement('advcheckbox', 'names', get_string('settings_ftpnames', 'local_backupftp'));
     }
 
-    /** @return array Default settings. */
+    /**
+     * Return the default settings.
+     *
+     * @return array
+     */
     public static function defaults(): array {
         return ['service' => 'aws', 'region' => '', 'bucket' => '', 'accesskey' => '',
             'password' => '', 'folder' => 'backup', 'organize' => 1, 'names' => 1];
@@ -103,12 +111,20 @@ class provider extends \local_backupftp\storage\provider {
             !preg_match('~(?:^|/)\.{1,2}(?:/|$)~', $path) && strpos($path, '//') === false);
     }
 
-    /** @return string Object prefix. */
+    /**
+     * Return the object prefix.
+     *
+     * @return string
+     */
     public function root(): string {
         return trim((string)$this->config['folder'], '/');
     }
 
-    /** @return client Instance-scoped S3 client. */
+    /**
+     * Create the S3 client for this instance.
+     *
+     * @return client
+     */
     private function connect(): client {
         return new client(static::normalize($this->config));
     }
@@ -136,7 +152,11 @@ class provider extends \local_backupftp\storage\provider {
         return true;
     }
 
-    /** @return array Available backups. */
+    /**
+     * List the available backups.
+     *
+     * @return array
+     */
     public function list_files(): array {
         $prefix = $this->root() === '' ? '' : $this->root() . '/';
         $files = [];

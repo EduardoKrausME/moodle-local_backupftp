@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Generic S3 backup storage.
@@ -22,15 +22,15 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['pluginname'] = 'S3 compatible (generic)';
-$string['endpoint'] = 'S3 endpoint (HTTPS)';
-$string['region'] = 'Signing region';
-$string['bucket'] = 'Bucket name';
 $string['accesskey'] = 'Access key ID';
-$string['password'] = 'Secret access key';
+$string['bucket'] = 'Bucket name';
+$string['endpoint'] = 'S3 endpoint (HTTPS)';
 $string['folder'] = 'Backup prefix';
-$string['urlstyle'] = 'Bucket URL style';
+$string['password'] = 'Secret access key';
+$string['pluginname'] = 'S3 compatible (generic)';
+$string['region'] = 'Signing region';
 $string['styleauto'] = 'Automatic';
 $string['stylepath'] = 'Path-style (endpoint/bucket)';
 $string['stylevirtual'] = 'Virtual-hosted (bucket.endpoint)';
 $string['urlstyle_help'] = 'Use the addressing style required by your provider. Automatic uses path-style for IP addresses, single-label hosts and dotted bucket names, and virtual-hosted style otherwise. Select path-style explicitly if your provider requires it.';
+$string['urlstyle'] = 'Bucket URL style';

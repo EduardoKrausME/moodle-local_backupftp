@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * S3 backup storage.
@@ -22,17 +22,17 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['pluginname'] = 'Amazon S3 / DigitalOcean Spaces';
-$string['service'] = 'Serviço de armazenamento';
-$string['aws'] = 'Amazon S3';
-$string['space'] = 'DigitalOcean Spaces';
-$string['region'] = 'Região (ex.: us-east-1 ou nyc1)';
-$string['bucket'] = 'Nome do bucket / Space';
 $string['accesskey'] = 'Chave de acesso';
-$string['password'] = 'Chave secreta';
+$string['aws'] = 'Amazon S3';
+$string['bucket'] = 'Nome do bucket / Space';
+$string['extensionrequired'] = 'As extensões PHP cURL e SimpleXML são necessárias para o armazenamento S3.';
 $string['folder'] = 'Prefixo dos backups';
+$string['httperror'] = 'A requisição S3 falhou (HTTP {$a}).';
 $string['invalidconfig'] = 'Configuração de destino S3 inválida.';
 $string['invalidfolder'] = 'Prefixo de backup S3 inválido.';
-$string['extensionrequired'] = 'As extensões PHP cURL e SimpleXML são necessárias para o armazenamento S3.';
+$string['password'] = 'Chave secreta';
+$string['pluginname'] = 'Amazon S3 / DigitalOcean Spaces';
+$string['region'] = 'Região (ex.: us-east-1 ou nyc1)';
+$string['service'] = 'Serviço de armazenamento';
+$string['space'] = 'DigitalOcean Spaces';
 $string['transferfailed'] = 'Falha na transferência do backup S3.';
-$string['httperror'] = 'A requisição S3 falhou (HTTP {$a}).';

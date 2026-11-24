@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Generic S3 backup storage.
@@ -32,7 +32,7 @@ use backupftpstorage_s3\client;
  * @covers \backupftpstorage_s3generic\provider
  * @covers \backupftpstorage_s3\client
  */
-class provider_test extends \advanced_testcase {
+final class provider_test extends \advanced_testcase {
     /**
      * Verify configuration and inherited prefix ownership.
      */
