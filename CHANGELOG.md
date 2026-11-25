@@ -46,4 +46,4 @@ Comparison: [2.4.3...2.4.4](https://github.com/EduardoKrausME/moodle-local_backu
 
 ---
 
-All statements are based on published Git tag differences, not inferred functionality from release numbers. This file does not claim that tests were run during changelog creation.
+Historical release notes are based on published Git tag differences. The maintenance release notes describe the changes included in the current build.
