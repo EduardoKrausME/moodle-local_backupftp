@@ -235,7 +235,8 @@ abstract class provider {
      * @return bool
      */
     public static function valid_automatic_filename(string $filename): bool {
-        return strlen($filename) <= 255 && preg_match('/\A[^.\/\\\\\x00-\x1f\x7f][^\/\\\\\x00-\x1f\x7f]*\.mbz\z/iu', $filename) === 1;
+        return strlen($filename) <= 255 &&
+            preg_match('/\A[^.\/\\\\\x00-\x1f\x7f][^\/\\\\\x00-\x1f\x7f]*\.mbz\z/iu', $filename) === 1;
     }
 
     /**

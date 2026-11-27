@@ -416,7 +416,7 @@ class automatic {
                 $where .= ' AND (timecreated < :created OR (timecreated = :samecreated AND id < :id))';
                 $params += ['created' => $cursor->timecreated, 'samecreated' => $cursor->timecreated, 'id' => $cursor->id];
             }
-            $jobs = $DB->get_records_select(self::TABLE, $where, $params, 'timecreated DESC, id DESC', '*', 200);
+            $jobs = $DB->get_records_select(self::TABLE, $where, $params, 'timecreated DESC, id DESC', '*', 0, 200);
             foreach ($jobs as $job) {
                 $cursor = $job;
                 $targets = [];
