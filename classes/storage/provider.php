@@ -34,6 +34,9 @@ abstract class provider {
     /** @var array Instance-specific configuration. */
     protected $config;
 
+    /** @var string Unique directory for a native automatic backup. */
+    protected $automaticdirectory = '';
+
     /**
      * Initialize a storage provider from its configured destination.
      *
@@ -143,6 +146,9 @@ abstract class provider {
      */
     protected function course_directories(int $courseid): array {
         global $DB;
+        if ($this->automaticdirectory !== '') {
+            return [$this->automaticdirectory];
+        }
         if (empty($this->config['organize'])) {
             return [];
         }
@@ -169,6 +175,9 @@ abstract class provider {
      */
     protected function filename(string $filename, int $courseid): string {
         global $DB;
+        if ($this->automaticdirectory !== '') {
+            return $filename;
+        }
         if (!empty($this->config['names'])) {
             $course = $DB->get_record('course', ['id' => $courseid], 'id,fullname', MUST_EXIST);
             $filename = $course->id . ' - ' . $course->fullname . '.mbz';
@@ -196,22 +205,85 @@ abstract class provider {
      * @param string $filename Unique filename.
      * @param int $courseid Course ID.
      * @param array $logs Transfer logs.
+     * @param string $backupid Native backup ID; empty for legacy flat filenames.
      * @return string Exact destination path.
      */
-    public function store_automatic(string $source, string $filename, int $courseid, array &$logs): string {
-        if (!$this->supports_automatic() ||
-                !preg_match('/\Abackup-moodle2-course-[0-9]+-auto-[a-f0-9]{32}-[0-9]+\.mbz\z/', $filename)) {
+    public function store_automatic(string $source, string $filename, int $courseid, array &$logs,
+            string $backupid = ''): string {
+        if (!$this->supports_automatic() || !$this->automatic_relative($filename, $backupid)) {
             throw new \coding_exception('Unsupported automatic backup destination or filename');
         }
         $copy = clone $this;
         $copy->config['names'] = 0;
         $copy->config['organize'] = 0;
-        $path = $copy->automatic_path($filename);
+        $relative = $copy->automatic_relative($filename, $backupid);
+        if ($backupid !== '') {
+            $copy->automaticdirectory = dirname($relative);
+        }
+        $path = $copy->automatic_path($relative);
         if (!$copy->store($source, $filename, $courseid, $logs) ||
                 !$copy->verify_automatic($path, (int)filesize($source))) {
             throw new \moodle_exception('storage_failure', 'local_backupftp', '', $this->record->name);
         }
         return $path;
+    }
+
+    /**
+     * Validate an original MBZ basename without changing its spelling.
+     *
+     * @param string $filename Archive basename.
+     * @return bool
+     */
+    public static function valid_automatic_filename(string $filename): bool {
+        return strlen($filename) <= 255 && preg_match('/\A[^.\/\\\\\x00-\x1f\x7f][^\/\\\\\x00-\x1f\x7f]*\.mbz\z/iu', $filename) === 1;
+    }
+
+    /**
+     * Derive a unique relative location, retaining the original basename.
+     *
+     * @param string $filename Archive basename.
+     * @param string $backupid Native backup ID or empty for legacy names.
+     * @return string Empty for invalid input.
+     */
+    private function automatic_relative(string $filename, string $backupid): string {
+        if ($backupid === '') {
+            return preg_match('/\Abackup-moodle2-course-[0-9]+-auto-[a-f0-9]{32}-[0-9]+\.mbz\z/', $filename)
+                ? $filename : '';
+        }
+        if (!preg_match('/\A[a-f0-9]{32}\z/', $backupid) || !self::valid_automatic_filename($filename)) {
+            return '';
+        }
+        return 'automatic-' . $backupid . '-' . (int)$this->record->id . '/' . $filename;
+    }
+
+    /**
+     * Confirm the stored path is precisely the expected backup location.
+     *
+     * @param string $path Recorded destination path.
+     * @param string $filename Original or legacy basename.
+     * @param string $backupid Native backup ID or empty for legacy names.
+     * @return bool
+     */
+    public function matches_automatic_path(string $path, string $filename, string $backupid = ''): bool {
+        $relative = $this->automatic_relative($filename, $backupid);
+        return $relative !== '' && $path === $this->automatic_path($relative);
+    }
+
+    /**
+     * Recognize a legacy or isolated automatic path before deletion.
+     *
+     * @param string $path Recorded path.
+     * @return bool
+     */
+    protected function is_automatic_path(string $path): bool {
+        if ($this->matches_automatic_path($path, basename($path))) {
+            return true;
+        }
+        $directory = basename(dirname($path));
+        if (!preg_match('/\Aautomatic-([a-f0-9]{32})-[0-9]+\z/', $directory, $matches)) {
+            return false;
+        }
+        return $this->matches_automatic_path($path, basename($path), $matches[1]);
     }
 
     /**

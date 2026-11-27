@@ -58,10 +58,14 @@ class automatic_form extends \moodleform {
         $mform->addElement('select', 'retention', get_string('automatic_retention', $component), [
             0 => get_string('automatic_never', $component),
             1 => get_string('automatic_delete_after', $component),
+            2 => get_string('automatic_keep_count', $component),
         ]);
         $mform->addElement('text', 'days', get_string('automatic_days', $component));
         $mform->setType('days', PARAM_INT);
-        $mform->hideIf('days', 'retention', 'eq', 0);
+        $mform->hideIf('days', 'retention', 'neq', 1);
+        $mform->addElement('text', 'copies', get_string('automatic_copies', $component));
+        $mform->setType('copies', PARAM_INT);
+        $mform->hideIf('copies', 'retention', 'neq', 2);
         $this->add_action_buttons();
     }
 
@@ -79,8 +83,11 @@ class automatic_form extends \moodleform {
                 !\local_backupftp\automatic::selected((array)($data['storageids'] ?? []), $storages)) {
             $errors['enabled'] = get_string('storage_select', 'local_backupftp');
         }
-        if (!empty($data['retention']) && ((int)($data['days'] ?? 0) < 1 || (int)$data['days'] > 36500)) {
+        if ((int)($data['retention'] ?? 0) === 1 && ((int)($data['days'] ?? 0) < 1 || (int)$data['days'] > 36500)) {
             $errors['days'] = get_string('automatic_invaliddays', 'local_backupftp');
+        }
+        if ((int)($data['retention'] ?? 0) === 2 && ((int)($data['copies'] ?? 0) < 1 || (int)$data['copies'] > 36500)) {
+            $errors['copies'] = get_string('automatic_invalidcopies', 'local_backupftp');
         }
         return $errors;
     }

@@ -26,9 +26,12 @@ defined('MOODLE_INTERNAL') || die;
 
 $string['adding_to_category'] = 'Se agregará a la categoría {$a->categoria}';
 $string['already_added_status'] = 'Ya agregado y el estado es {$a->status}';
+$string['automatic_copies'] = 'Cantidad de copias por curso y almacenamiento';
 $string['automatic_intro'] = 'Moodle genera las copias de seguridad programadas de los cursos. Este plugin recibe la notificación de finalización de la copia y envía automáticamente el archivo generado a los destinos de almacenamiento activos seleccionados. Configurá la programación en Moodle y mantené el cron activo.';
+$string['automatic_invalidcopies'] = 'Ingresá una cantidad entre 1 y 36500.';
 $string['automatic_invaliddays'] = 'Ingresá un número entre 1 y 36500.';
-$string['automatic_local_retention'] = 'La retención solo se aplica a las copias automáticas enviadas por el plugin, no a las copias manuales ni a las originales de Moodle. Los días se cuentan desde que termina el envío. Configurá la retención nativa por separado. Desactivar los envíos también pausa la eliminación automática.';
+$string['automatic_keep_count'] = 'Conservar las últimas copias por cantidad';
+$string['automatic_local_retention'] = 'La retención solo se aplica a las copias automáticas enviadas por el plugin, no a las copias manuales ni a las originales de Moodle. Los días se cuentan desde que termina el envío. Configurá la retención nativa por separado. Desactivar los envíos también pausa la eliminación automática. La retención por cantidad se aplica por curso y almacenamiento seleccionado, considerando solo las copias enviadas correctamente.';
 $string['automatic_nohistory'] = 'Todavía no se recibieron copias automáticas.';
 $string['automatic_nostorage'] = 'Ningún almacenamiento activo admite copias automáticas. Configurá primero un destino de almacenamiento.';
 $string['automatic_status_expired'] = 'Retención vencida; copias eliminadas';
