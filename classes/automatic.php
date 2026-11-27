@@ -36,13 +36,13 @@ class automatic {
     public const AREA = 'automatic';
 
     /**
-     * Return the saved settings. Zero days means retain forever.
+     * Return the saved settings. Zero days and copies mean retain forever.
      *
      * @return array
      */
     public static function settings(): array {
         $saved = json_decode((string)get_config('local_backupftp', 'automaticsettings'), true);
-        return array_replace(['enabled' => false, 'storageids' => [], 'days' => 0], is_array($saved) ? $saved : []);
+        return array_replace(['enabled' => false, 'storageids' => [], 'days' => 0, 'copies' => 0], is_array($saved) ? $saved : []);
     }
 
     /**
@@ -146,6 +146,16 @@ class automatic {
                 mtrace('BackupFTP: exact automated backup archive not found: ' . $backupid);
                 return;
             }
+            // Keep metadata in the existing destination JSON, including for history after staging is removed.
+            $original = $source instanceof \stored_file ? $source->get_filename() : basename($source);
+            $size = $source instanceof \stored_file ? $source->get_filesize() : filesize($source);
+            foreach ($destinations as &$destination) {
+                $destination['filename'] = $original;
+                $destination['size'] = (int)$size;
+            }
+            unset($destination);
+            $job->destinations = json_encode($destinations);
+            $DB->update_record(self::TABLE, $job);
             $fs = get_file_storage();
             $record = [
                 'contextid' => \context_system::instance()->id, 'component' => 'local_backupftp',
@@ -291,8 +301,11 @@ class automatic {
                 $file->delete();
             }
         }
+        $copies = (int)$settings['copies'];
         $days = (int)$settings['days'];
-        if ($days > 0) {
+        if ($copies > 0) {
+            self::retain_count($copies, self::selected((array)$settings['storageids'], self::storages()));
+        } else if ($days > 0) {
             $expired = $DB->get_records_select(self::TABLE,
                 'status = :status AND timecompleted <= :cutoff AND nextattempt <= :now',
                 ['status' => 'complete', 'cutoff' => time() - $days * DAYSECS, 'now' => time()],
@@ -336,8 +349,12 @@ class automatic {
                         continue;
                     }
                     $logs = [];
+                    $original = (string)($destination['filename'] ?? '');
+                    $preserve = \local_backupftp\storage\provider::valid_automatic_filename($original);
                     $destination['path'] = $provider->store_automatic(
-                        $source, self::filename($job, $destination['id']), $job->courseid, $logs);
+                        $source, $preserve ? $original : self::filename($job, $destination['id']),
+                        $job->courseid, $logs, $preserve ? $job->backupid : '');
+                    $destination['size'] = (int)$file->get_filesize();
                     $job->destinations = json_encode($destinations);
                     $DB->update_record(self::TABLE, $job);
                 } catch (\Throwable $e) {
@@ -376,22 +393,96 @@ class automatic {
     }
 
     /**
+     * Enforce count retention independently for each course and unchanged selected destination.
+     *
+     * Only completed jobs count as restore points; a pending upload cannot displace an older copy.
+     * Read in bounded batches, newest first, and limit deletion work per scheduled run.
+     *
+     * @param int $copies Number of copies to keep.
+     * @param array $storages Selected destination records.
+     */
+    private static function retain_count(int $copies, array $storages): void {
+        global $DB;
+        if (!$storages) {
+            return;
+        }
+        $seen = [];
+        $cursor = null;
+        $attempts = 0;
+        do {
+            $where = 'status = :status';
+            $params = ['status' => 'complete'];
+            if ($cursor !== null) {
+                $where .= ' AND (timecreated < :created OR (timecreated = :samecreated AND id < :id))';
+                $params += ['created' => $cursor->timecreated, 'samecreated' => $cursor->timecreated, 'id' => $cursor->id];
+            }
+            $jobs = $DB->get_records_select(self::TABLE, $where, $params, 'timecreated DESC, id DESC', '*', 0, 200);
+            foreach ($jobs as $job) {
+                $cursor = $job;
+                $targets = [];
+                foreach (json_decode($job->destinations, true) as $destination) {
+                    $id = (int)$destination['id'];
+                    if (!isset($storages[$id]) || !empty($destination['deleted']) || empty($destination['path']) ||
+                            !hash_equals($destination['hash'], self::fingerprint($storages[$id]))) {
+                        continue;
+                    }
+                    $provider = manager::from_record($storages[$id]);
+                    if (!self::matches_destination($job, $destination, $provider)) {
+                        continue;
+                    }
+                    $key = $job->courseid . ':' . $id;
+                    $seen[$key] = ($seen[$key] ?? 0) + 1;
+                    if ($seen[$key] > $copies) {
+                        $targets[] = $id;
+                    }
+                }
+                if ($targets && $job->nextattempt <= time()) {
+                    self::expire($job, $targets);
+                    if (++$attempts >= 50) {
+                        return;
+                    }
+                }
+            }
+        } while (count($jobs) === 200);
+    }
+
+    /**
+     * Validate an exact recorded path, supporting both original names and legacy flat names.
+     *
+     * @param \stdClass $job Transfer record.
+     * @param array $destination Saved destination.
+     * @param \local_backupftp\storage\provider $provider Storage provider.
+     * @return bool
+     */
+    private static function matches_destination(\stdClass $job, array $destination,
+            \local_backupftp\storage\provider $provider): bool {
+        $path = (string)$destination['path'];
+        $id = (int)$destination['id'];
+        if ($provider->matches_automatic_path($path, self::filename($job, $id))) {
+            return true;
+        }
+        $original = (string)($destination['filename'] ?? '');
+        return $provider->matches_automatic_path($path, $original, $job->backupid);
+    }
+
+    /**
      * Remove only confirmed automatic copies recorded by this plugin.
      *
      * @param \stdClass $job Transfer record.
+     * @param array|null $ids Destination IDs to expire, or null for time-based retention.
      */
-    private static function expire(\stdClass $job): void {
+    private static function expire(\stdClass $job, ?array $ids = null): void {
         global $DB;
         $job->nextattempt = time() + DAYSECS;
         $DB->update_record(self::TABLE, $job);
         $destinations = json_decode($job->destinations, true);
         foreach ($destinations as &$destination) {
-            if ($destination['deleted']) {
+            if ($destination['deleted'] || ($ids !== null && !in_array((int)$destination['id'], $ids, true))) {
                 continue;
             }
             try {
                 $provider = self::destination($destination);
-                if (!$provider || basename($destination['path']) !== self::filename($job, $destination['id'])) {
+                if (!$provider || !self::matches_destination($job, $destination, $provider)) {
                     continue;
                 }
                 if ($provider->delete_automatic($destination['path'])) {

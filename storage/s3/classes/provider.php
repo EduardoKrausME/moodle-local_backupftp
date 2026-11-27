@@ -223,7 +223,7 @@ class provider extends \local_backupftp\storage\provider {
      * @return bool
      */
     public function delete_automatic(string $path): bool {
-        if ($path !== $this->automatic_path(basename($path)) || !$this->owns($path)) {
+        if (!$this->is_automatic_path($path) || !$this->owns($path)) {
             return false;
         }
         $this->connect()->delete($path);

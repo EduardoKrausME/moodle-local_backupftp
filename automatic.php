@@ -44,8 +44,9 @@ $form = new automatic_form($url, ['storages' => $storages]);
 $form->set_data([
     'enabled' => $settings['enabled'],
     'storageids' => array_keys(automatic::selected((array)$settings['storageids'], $storages)),
-    'retention' => (int)$settings['days'] > 0 ? 1 : 0,
+    'retention' => (int)$settings['copies'] > 0 ? 2 : ((int)$settings['days'] > 0 ? 1 : 0),
     'days' => (int)$settings['days'] ?: 30,
+    'copies' => (int)$settings['copies'] ?: 7,
 ]);
 if ($form->is_cancelled()) {
     redirect($home);
@@ -59,7 +60,8 @@ if ($data = $form->get_data()) {
     set_config('automaticsettings', json_encode([
         'enabled' => !empty($data->enabled),
         'storageids' => $ids,
-        'days' => !empty($data->retention) ? (int)$data->days : 0,
+        'days' => (int)$data->retention === 1 ? (int)$data->days : 0,
+        'copies' => (int)$data->retention === 2 ? (int)$data->copies : 0,
     ]), 'local_backupftp');
     redirect($url, get_string('changessaved'));
 }
@@ -77,15 +79,31 @@ $form->display();
 
 echo $OUTPUT->heading(get_string('automatic_history', 'local_backupftp'), 3);
 $table = new html_table();
-$table->head = [get_string('course'), get_string('created_at', 'local_backupftp'),
-    get_string('storage_systems', 'local_backupftp'), get_string('status', 'local_backupftp')];
-foreach ($DB->get_records(automatic::TABLE, [], 'id DESC', '*', 0, 50) as $job) {
+$table->head = [get_string('course'), get_string('created_at', 'local_backupftp'), get_string('filename'),
+    get_string('size'), get_string('storage_systems', 'local_backupftp'), get_string('status', 'local_backupftp')];
+$jobs = $DB->get_records(automatic::TABLE, [], 'id DESC', '*', 0, 50);
+$courses = $jobs ? $DB->get_records_list('course', 'id', array_unique(array_column($jobs, 'courseid')), '', 'id,fullname') : [];
+$allstorages = \local_backupftp\storage\manager::instances();
+foreach ($jobs as $job) {
     $destinations = json_decode($job->destinations, true);
-    $total = count($destinations);
-    $done = count(array_filter($destinations, static function($destination) {
-        return $destination['path'] !== '';
-    }));
-    $table->data[] = [(int)$job->courseid, userdate($job->timecreated), $done . ' / ' . $total,
+    $names = [];
+    $size = 0;
+    $details = [];
+    foreach ($destinations as $destination) {
+        $id = (int)$destination['id'];
+        $name = $allstorages[$id]->name ?? ('#' . $id);
+        $status = !empty($destination['deleted']) ? 'expired' :
+            (!empty($destination['path']) ? 'complete' : ($job->status === 'capturefailed' ? 'capturefailed' : 'pending'));
+        $details[] = s($name) . ': ' . get_string('automatic_status_' . $status, 'local_backupftp');
+        $filename = $destination['filename'] ?? (!empty($destination['path']) ? basename($destination['path']) : '');
+        if ($filename !== '') {
+            $names[] = s($filename);
+        }
+        $size = max($size, (int)($destination['size'] ?? 0));
+    }
+    $course = isset($courses[$job->courseid]) ? s($courses[$job->courseid]->fullname) : ('#' . (int)$job->courseid);
+    $table->data[] = [$course, userdate($job->timecreated), implode(html_writer::empty_tag('br'), array_unique($names)),
+        $size ? display_size($size) : '-', implode(html_writer::empty_tag('br'), $details),
         get_string('automatic_status_' . $job->status, 'local_backupftp')];
 }
 if ($table->data) {
